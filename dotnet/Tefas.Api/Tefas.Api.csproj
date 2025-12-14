@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    
+    <PackageId>Tefas.Api</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>TEFAS API Contributors</Authors>
+    <Description>TEFAS (Türkiye Elektronik Fon Alım Satım Platformu) API Client for .NET</Description>
+    <PackageTags>tefas;fund;investment;finance;turkey;api</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Playwright" Version="1.49.0" />
+  </ItemGroup>
+
+</Project>
