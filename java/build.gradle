@@ -1,0 +1,57 @@
+plugins {
+    id 'java'
+    id 'java-library'
+    id 'maven-publish'
+    id 'application'
+}
+
+application {
+    mainClass = 'com.tefas.examples.BasicExample'
+}
+
+group = 'com.tefas'
+version = '1.0.0'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'com.microsoft.playwright:playwright:1.49.0'
+    implementation 'com.google.code.gson:gson:2.10.1'
+}
+
+jar {
+    manifest {
+        attributes(
+            'Implementation-Title': 'TEFAS API Client',
+            'Implementation-Version': version
+        )
+    }
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            from components.java
+            
+            pom {
+                name = 'TEFAS API Client'
+                description = 'TEFAS (Türkiye Elektronik Fon Alım Satım Platformu) API Client for Java'
+                url = 'https://github.com/eneshenderson/tefas-api'
+                
+                licenses {
+                    license {
+                        name = 'MIT License'
+                        url = 'https://opensource.org/licenses/MIT'
+                    }
+                }
+            }
+        }
+    }
+}
