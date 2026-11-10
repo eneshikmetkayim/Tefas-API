@@ -6,6 +6,7 @@
 [![Go](https://img.shields.io/badge/Go-1.21+-00ADD8.svg)](https://golang.org)
 [![.NET](https://img.shields.io/badge/.NET-8.0+-512BD4.svg)](https://dotnet.microsoft.com)
 [![Java](https://img.shields.io/badge/Java-17+-ED8B00.svg)](https://java.com)
+[![Rust](https://img.shields.io/badge/Rust-1.80+-DEA584.svg)](https://www.rust-lang.org)
 
 TEFAS (Türkiye Elektronik Fon Alım Satım Platformu) için çoklu dil desteğine sahip API client kütüphanesi.
 
@@ -153,6 +154,25 @@ try (TefasClient client = new TefasClient(options)) {
 }
 ```
 
+### Rust
+
+```bash
+cd rust
+cargo test
+```
+
+```rust
+use tefas_api::{FundType, TefasClient};
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let client = TefasClient::new()?;
+    let funds = client.get_funds(FundType::Yat, "20261110").await?;
+    println!("{} fon", funds.len());
+    Ok(())
+}
+```
+
 ## 📚 API Metodları
 
 Tüm dillerde aynı metodlar mevcuttur:
@@ -167,6 +187,11 @@ Tüm dillerde aynı metodlar mevcuttur:
 | `getMarketSummary()` | Piyasa özeti ve istatistikleri getirir |
 | `searchFunds(query)` | Fon adı veya koduna göre arama yapar |
 
+Güncel JSON endpoint envanteri ve request/response ayrıntıları için
+[TEFAS_API.md](TEFAS_API.md) dosyasına bakın. Güncel sözleşme fixture'ları
+`fixtures/` altında tutulur; canlı ağ testi varsayılan test süitinin parçası
+değildir.
+
 ## 🏗️ Proje Yapısı
 
 ```
@@ -176,6 +201,8 @@ tefas-api/
 ├── go/              # Go modülü
 ├── dotnet/          # .NET kütüphanesi
 ├── java/            # Java kütüphanesi (Maven + Gradle)
+├── rust/            # Rust async JSON istemcisi
+├── fixtures/        # Güncel API response fixture'ları
 ├── LICENSE          # MIT Lisansı
 └── README.md
 ```

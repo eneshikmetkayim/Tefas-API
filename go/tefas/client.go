@@ -14,11 +14,11 @@ const baseURL = "https://www.tefas.gov.tr"
 
 // Client is the TEFAS API client
 type Client struct {
-	options    ClientOptions
-	pw         *playwright.Playwright
-	browser    playwright.Browser
-	page       playwright.Page
-	started    bool
+	options ClientOptions
+	pw      *playwright.Playwright
+	browser playwright.Browser
+	page    playwright.Page
+	started bool
 }
 
 // NewClient creates a new TEFAS client
@@ -98,17 +98,15 @@ func (c *Client) callAPI(endpoint string, params apiParams) (*apiResponse, error
 		}
 	}
 
-	paramsJSON, _ := json.Marshal(params)
-
-	script := fmt.Sprintf(`
-		async () => {
-			const res = await fetch('/api/funds/%s', {
+	script := `
+		async ({ endpoint, params }) => {
+			const res = await fetch('/api/funds/' + endpoint, {
 				method: 'POST',
 				headers: {
 					'Accept': 'application/json',
 					'Content-Type': 'application/json'
 				},
-				body: JSON.stringify(%s)
+				body: JSON.stringify(params)
 			});
 			const text = await res.text();
 			if (text.includes('Erişim Engellendi') || text.includes('Web Application Firewall')) {
@@ -121,9 +119,12 @@ func (c *Client) callAPI(endpoint string, params apiParams) (*apiResponse, error
 			}
 			return data;
 		}
-	`, endpoint, string(paramsJSON))
+	`
 
-	result, err := c.page.Evaluate(script)
+	result, err := c.page.Evaluate(script, map[string]interface{}{
+		"endpoint": endpoint,
+		"params":   params,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("API call failed: %w", err)
 	}

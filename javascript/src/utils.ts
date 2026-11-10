@@ -16,11 +16,11 @@ import type {
  */
 export function parseTimestamp(timestamp: string | number): Date {
   if (typeof timestamp === "string" && /^\d{8}$/.test(timestamp)) {
-    return new Date(
+    return new Date(Date.UTC(
       Number(timestamp.slice(0, 4)),
       Number(timestamp.slice(4, 6)) - 1,
       Number(timestamp.slice(6, 8))
-    );
+    ));
   }
   const ts = typeof timestamp === "string" ? parseInt(timestamp, 10) : timestamp;
   return new Date(ts);

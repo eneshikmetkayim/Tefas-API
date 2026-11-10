@@ -4,6 +4,7 @@
   "description": "TEFAS (Türkiye Elektronik Fon Alım Satım Platformu) API Client",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
+  "type": "module",
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
@@ -14,7 +15,7 @@
   },
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --dts",
-    "test": "jest",
+    "test": "tsx --test test/*.test.ts",
     "lint": "eslint src/",
     "prepublishOnly": "npm run build"
   },
@@ -36,6 +37,7 @@
   "devDependencies": {
     "@types/node": "^20.19.27",
     "ts-node": "^10.9.2",
+    "tsx": "^4.19.2",
     "tsup": "^8.0.0",
     "typescript": "^5.9.3"
   },
