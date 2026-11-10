@@ -11,6 +11,8 @@ internal static class DateHelper
         
         long ts = timestamp switch
         {
+            string s when s.Length == 8 && DateTime.TryParseExact(s, "yyyyMMdd", null, System.Globalization.DateTimeStyles.None, out var parsedDate)
+                => new DateTimeOffset(parsedDate).ToUnixTimeMilliseconds(),
             string s => long.TryParse(s, out var parsed) ? parsed : 0,
             long l => l,
             double d => (long)d,
@@ -26,7 +28,7 @@ internal static class DateHelper
     /// <summary>
     /// Tarihi DD.MM.YYYY formatına çevir
     /// </summary>
-    public static string FormatDate(DateTime date) => date.ToString("dd.MM.yyyy");
+    public static string FormatDate(DateTime date) => date.ToString("yyyyMMdd");
     
     /// <summary>
     /// Son iş gününü bul

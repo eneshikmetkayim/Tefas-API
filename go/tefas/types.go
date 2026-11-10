@@ -95,23 +95,32 @@ func DefaultOptions() ClientOptions {
 
 // apiParams represents API request parameters
 type apiParams struct {
-	Fontip      string `json:"fontip"`
-	Sfontur     string `json:"sfontur"`
-	Fonkod      string `json:"fonkod"`
-	Fongrup     string `json:"fongrup"`
-	Bastarih    string `json:"bastarih"`
-	Bittarih    string `json:"bittarih"`
-	Fonturkod   string `json:"fonturkod"`
-	Fonunvantip string `json:"fonunvantip"`
-	Kurucukod   string `json:"kurucukod"`
+	FonTipi string `json:"fonTipi"`
+	FonKodu *string `json:"fonKodu"`
+	AramaMetni *string `json:"aramaMetni"`
+	FonTurKod *string `json:"fonTurKod"`
+	FonGrubu *string `json:"fonGrubu"`
+	SfonTurKod *string `json:"sfonTurKod"`
+	FonTurAciklama *string `json:"fonTurAciklama"`
+	KurucuKod *string `json:"kurucuKod"`
+	BasTarih string `json:"basTarih"`
+	BitTarih string `json:"bitTarih"`
+	BasSira int `json:"basSira"`
+	BitSira int `json:"bitSira"`
+	Dil string `json:"dil"`
+	SFonTurKod string `json:"sFonTurKod"`
+	FonKod string `json:"fonKod"`
+	FonGrup string `json:"fonGrup"`
+	FonUnvanTip string `json:"fonUnvanTip"`
 }
 
 // apiResponse represents API response
 type apiResponse struct {
-	Draw            int                      `json:"draw"`
-	RecordsTotal    int                      `json:"recordsTotal"`
-	RecordsFiltered int                      `json:"recordsFiltered"`
-	Data            []map[string]interface{} `json:"data"`
+	ErrorCode string `json:"errorCode"`
+	ErrorMessage string `json:"errorMessage"`
+	ResultList []map[string]interface{} `json:"resultList"`
+	ToplamSayi int `json:"toplamSayi"`
+	ToplamSayfa int `json:"toplamSayfa"`
 }
 
 // rawFundData represents raw API fund data

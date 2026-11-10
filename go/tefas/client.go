@@ -63,7 +63,7 @@ func (c *Client) Start() error {
 	page.SetDefaultTimeout(float64(c.options.Timeout))
 	page.SetDefaultNavigationTimeout(float64(c.options.Timeout))
 
-	if _, err := page.Goto(baseURL+"/TarihselVeriler.aspx", playwright.PageGotoOptions{
+	if _, err := page.Goto(baseURL+"/tr/fon-verileri", playwright.PageGotoOptions{
 		WaitUntil: playwright.WaitUntilStateDomcontentloaded,
 	}); err != nil {
 		return fmt.Errorf("failed to navigate: %w", err)
@@ -102,22 +102,26 @@ func (c *Client) callAPI(endpoint string, params apiParams) (*apiResponse, error
 
 	script := fmt.Sprintf(`
 		async () => {
-			const params = new URLSearchParams(%s);
-			const res = await fetch('/api/DB/%s', {
+			const res = await fetch('/api/funds/%s', {
 				method: 'POST',
 				headers: {
-					'Content-Type': 'application/x-www-form-urlencoded',
-					'X-Requested-With': 'XMLHttpRequest'
+					'Accept': 'application/json',
+					'Content-Type': 'application/json'
 				},
-				body: params.toString()
+				body: JSON.stringify(%s)
 			});
 			const text = await res.text();
 			if (text.includes('Erişim Engellendi') || text.includes('Web Application Firewall')) {
 				throw new Error('WAF_BLOCKED');
 			}
-			return JSON.parse(text);
+			if (!res.ok) throw new Error('HTTP ' + res.status + ': ' + text.substring(0, 200));
+			const data = JSON.parse(text);
+			if (data.errorCode || data.errorMessage) {
+				throw new Error((data.errorMessage || 'TEFAS API error') + (data.errorCode ? ' (' + data.errorCode + ')' : ''));
+			}
+			return data;
 		}
-	`, string(paramsJSON), endpoint)
+	`, endpoint, string(paramsJSON))
 
 	result, err := c.page.Evaluate(script)
 	if err != nil {
@@ -137,15 +141,10 @@ func (c *Client) callAPI(endpoint string, params apiParams) (*apiResponse, error
 // buildParams creates API parameters
 func (c *Client) buildParams(fundType FundType, fundCode string, startDate, endDate time.Time) apiParams {
 	return apiParams{
-		Fontip:      string(fundType),
-		Sfontur:     "",
-		Fonkod:      fundCode,
-		Fongrup:     "",
-		Bastarih:    FormatDate(startDate),
-		Bittarih:    FormatDate(endDate),
-		Fonturkod:   "",
-		Fonunvantip: "",
-		Kurucukod:   "",
+		FonTipi: string(fundType), FonKodu: stringPtr(fundCode),
+		BasTarih: FormatDate(startDate), BitTarih: FormatDate(endDate),
+		BasSira: 1, BitSira: 100000, Dil: "TR",
+		SFonTurKod: "", FonKod: "", FonGrup: "", FonUnvanTip: "",
 	}
 }
 
@@ -157,13 +156,13 @@ func (c *Client) GetFunds(fundType FundType, targetDate ...time.Time) ([]Fund, e
 	}
 
 	params := c.buildParams(fundType, "", date, date)
-	response, err := c.callAPI("BindHistoryInfo", params)
+	response, err := c.callAPI("fonGnlBlgSiraliGetir", params)
 	if err != nil {
 		return nil, err
 	}
 
-	funds := make([]Fund, len(response.Data))
-	for i, data := range response.Data {
+	funds := make([]Fund, len(response.ResultList))
+	for i, data := range response.ResultList {
 		funds[i] = parseFund(data, fundType)
 	}
 
@@ -178,29 +177,29 @@ func (c *Client) GetFund(code string, fundType FundType, targetDate ...time.Time
 	}
 
 	params := c.buildParams(fundType, strings.ToUpper(code), date, date)
-	response, err := c.callAPI("BindHistoryInfo", params)
+	response, err := c.callAPI("fonGnlBlgSiraliGetir", params)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(response.Data) == 0 {
+	if len(response.ResultList) == 0 {
 		return nil, nil
 	}
 
-	fund := parseFund(response.Data[0], fundType)
+	fund := parseFund(response.ResultList[0], fundType)
 	return &fund, nil
 }
 
 // GetPriceHistory returns price history
 func (c *Client) GetPriceHistory(code string, fundType FundType, startDate, endDate time.Time) ([]FundPrice, error) {
 	params := c.buildParams(fundType, strings.ToUpper(code), startDate, endDate)
-	response, err := c.callAPI("BindHistoryInfo", params)
+	response, err := c.callAPI("fonGnlBlgSiraliGetir", params)
 	if err != nil {
 		return nil, err
 	}
 
-	prices := make([]FundPrice, len(response.Data))
-	for i, data := range response.Data {
+	prices := make([]FundPrice, len(response.ResultList))
+	for i, data := range response.ResultList {
 		prices[i] = parseFundPrice(data)
 	}
 
@@ -222,13 +221,14 @@ func (c *Client) GetAllocation(code string, fundType FundType, targetDate ...tim
 	}
 
 	params := c.buildParams(fundType, strings.ToUpper(code), date, date)
-	response, err := c.callAPI("BindHistoryAllocation", params)
+	params.FonKod = strings.ToUpper(code)
+	response, err := c.callAPI("dagilimSiraliGetirT", params)
 	if err != nil {
 		return nil, err
 	}
 
-	allocations := make([]FundAllocation, len(response.Data))
-	for i, data := range response.Data {
+	allocations := make([]FundAllocation, len(response.ResultList))
+	for i, data := range response.ResultList {
 		allocations[i] = parseAllocation(data)
 	}
 

@@ -9,14 +9,14 @@ internal static class DataParser
     {
         return new Fund
         {
-            Code = GetString(data, "FONKODU"),
-            Name = GetString(data, "FONUNVAN"),
-            Price = GetDecimal(data, "FIYAT"),
-            Date = DateHelper.ParseTimestamp(GetValue(data, "TARIH")),
+            Code = GetString(data, "fonKodu", "FONKODU"),
+            Name = GetString(data, "fonUnvan", "FONUNVAN"),
+            Price = GetDecimal(data, "fiyat", "FIYAT"),
+            Date = DateHelper.ParseTimestamp(GetValue(data, "tarih", "TARIH")),
             FundType = fundType,
-            TotalValue = GetDecimal(data, "PORTFOYBUYUKLUK"),
-            ShareCount = GetLong(data, "TEDPAYSAYISI"),
-            InvestorCount = GetLong(data, "KISISAYISI")
+            TotalValue = GetDecimal(data, "portfoyBuyukluk", "PORTFOYBUYUKLUK"),
+            ShareCount = GetLong(data, "tedPaySayisi", "TEDPAYSAYISI"),
+            InvestorCount = GetLong(data, "kisiSayisi", "KISISAYISI")
         };
     }
     
@@ -24,12 +24,12 @@ internal static class DataParser
     {
         return new FundPrice
         {
-            Code = GetString(data, "FONKODU"),
-            Date = DateHelper.ParseTimestamp(GetValue(data, "TARIH")),
-            Price = GetDecimal(data, "FIYAT"),
-            ShareCount = GetLong(data, "TEDPAYSAYISI"),
-            InvestorCount = GetLong(data, "KISISAYISI"),
-            TotalValue = GetDecimal(data, "PORTFOYBUYUKLUK")
+            Code = GetString(data, "fonKodu", "FONKODU"),
+            Date = DateHelper.ParseTimestamp(GetValue(data, "tarih", "TARIH")),
+            Price = GetDecimal(data, "fiyat", "FIYAT"),
+            ShareCount = GetLong(data, "tedPaySayisi", "TEDPAYSAYISI"),
+            InvestorCount = GetLong(data, "kisiSayisi", "KISISAYISI"),
+            TotalValue = GetDecimal(data, "portfoyBuyukluk", "PORTFOYBUYUKLUK")
         };
     }
     
@@ -40,9 +40,9 @@ internal static class DataParser
         
         return new FundAllocation
         {
-            Code = GetString(data, "FONKODU"),
-            Name = GetString(data, "FONUNVAN"),
-            Date = DateHelper.ParseTimestamp(GetValue(data, "TARIH")),
+            Code = GetString(data, "fonKodu", "FONKODU"),
+            Name = GetString(data, "fonUnvan", "FONUNVAN"),
+            Date = DateHelper.ParseTimestamp(GetValue(data, "tarih", "TARIH")),
             Stock = GetDecimal(data, "HS"),
             GovernmentBond = GetDecimal(data, "DT"),
             Eurobond = GetDecimal(data, "EUT"),
@@ -55,16 +55,17 @@ internal static class DataParser
         };
     }
     
-    private static string GetString(JsonElement data, string key)
+    private static string GetString(JsonElement data, params string[] keys)
     {
-        if (data.TryGetProperty(key, out var prop) && prop.ValueKind == JsonValueKind.String)
-            return prop.GetString() ?? string.Empty;
+        foreach (var key in keys)
+            if (data.TryGetProperty(key, out var prop) && prop.ValueKind == JsonValueKind.String)
+                return prop.GetString() ?? string.Empty;
         return string.Empty;
     }
     
-    private static decimal GetDecimal(JsonElement data, string key)
+    private static decimal GetDecimal(JsonElement data, params string[] keys)
     {
-        if (data.TryGetProperty(key, out var prop))
+        foreach (var key in keys) if (data.TryGetProperty(key, out var prop))
         {
             return prop.ValueKind switch
             {
@@ -76,9 +77,9 @@ internal static class DataParser
         return 0;
     }
     
-    private static long GetLong(JsonElement data, string key)
+    private static long GetLong(JsonElement data, params string[] keys)
     {
-        if (data.TryGetProperty(key, out var prop))
+        foreach (var key in keys) if (data.TryGetProperty(key, out var prop))
         {
             try
             {
@@ -98,9 +99,9 @@ internal static class DataParser
         return 0;
     }
     
-    private static object? GetValue(JsonElement data, string key)
+    private static object? GetValue(JsonElement data, params string[] keys)
     {
-        if (data.TryGetProperty(key, out var prop))
+        foreach (var key in keys) if (data.TryGetProperty(key, out var prop))
         {
             return prop.ValueKind switch
             {

@@ -15,6 +15,13 @@ import type {
  * Unix timestamp'i Date'e çevir
  */
 export function parseTimestamp(timestamp: string | number): Date {
+  if (typeof timestamp === "string" && /^\d{8}$/.test(timestamp)) {
+    return new Date(
+      Number(timestamp.slice(0, 4)),
+      Number(timestamp.slice(4, 6)) - 1,
+      Number(timestamp.slice(6, 8))
+    );
+  }
   const ts = typeof timestamp === "string" ? parseInt(timestamp, 10) : timestamp;
   return new Date(ts);
 }
@@ -26,7 +33,7 @@ export function formatDate(date: Date): string {
   const day = date.getDate().toString().padStart(2, "0");
   const month = (date.getMonth() + 1).toString().padStart(2, "0");
   const year = date.getFullYear();
-  return `${day}.${month}.${year}`;
+  return `${year}${month}${day}`;
 }
 
 /**
@@ -51,16 +58,18 @@ export function getLastBusinessDay(): Date {
  * Ham API verisinden Fund nesnesi oluştur
  */
 export function parseFund(data: RawFundData, fundType: FundType): Fund {
+  const value = <T>(...keys: string[]): T | undefined =>
+    keys.map((key) => (data as Record<string, unknown>)[key]).find((v) => v != null) as T | undefined;
   return {
-    code: data.FONKODU || "",
-    name: data.FONUNVAN || "",
-    price: data.FIYAT || 0,
-    date: parseTimestamp(data.TARIH),
+    code: value<string>("fonKodu", "FONKODU") || "",
+    name: value<string>("fonUnvan", "FONUNVAN") || "",
+    price: value<number>("fiyat", "FIYAT") || 0,
+    date: parseTimestamp(value<string>("tarih", "TARIH") || ""),
     fundType,
-    totalValue: data.PORTFOYBUYUKLUK || 0,
-    shareCount: data.TEDPAYSAYISI || 0,
-    investorCount: data.KISISAYISI || 0,
-    rawData: data,
+    totalValue: value<number>("portfoyBuyukluk", "PORTFOYBUYUKLUK") || 0,
+    shareCount: value<number>("tedPaySayisi", "TEDPAYSAYISI") || 0,
+    investorCount: value<number>("kisiSayisi", "KISISAYISI") || 0,
+    rawData: data as Record<string, unknown>,
   };
 }
 
@@ -68,13 +77,15 @@ export function parseFund(data: RawFundData, fundType: FundType): Fund {
  * Ham API verisinden FundPrice nesnesi oluştur
  */
 export function parseFundPrice(data: RawFundData): FundPrice {
+  const value = <T>(...keys: string[]): T | undefined =>
+    keys.map((key) => (data as Record<string, unknown>)[key]).find((v) => v != null) as T | undefined;
   return {
-    code: data.FONKODU || "",
-    date: parseTimestamp(data.TARIH),
-    price: data.FIYAT || 0,
-    shareCount: data.TEDPAYSAYISI || 0,
-    investorCount: data.KISISAYISI || 0,
-    totalValue: data.PORTFOYBUYUKLUK || 0,
+    code: value<string>("fonKodu", "FONKODU") || "",
+    date: parseTimestamp(value<string>("tarih", "TARIH") || ""),
+    price: value<number>("fiyat", "FIYAT") || 0,
+    shareCount: value<number>("tedPaySayisi", "TEDPAYSAYISI") || 0,
+    investorCount: value<number>("kisiSayisi", "KISISAYISI") || 0,
+    totalValue: value<number>("portfoyBuyukluk", "PORTFOYBUYUKLUK") || 0,
   };
 }
 
@@ -82,22 +93,27 @@ export function parseFundPrice(data: RawFundData): FundPrice {
  * Ham API verisinden FundAllocation nesnesi oluştur
  */
 export function parseAllocation(data: RawAllocationData): FundAllocation {
+  const value = <T>(...keys: string[]): T | undefined =>
+    keys.map((key) => (data as Record<string, unknown>)[key]).find((v) => v != null) as T | undefined;
   const deposit =
-    (data.VDM || 0) + (data.VM || 0) + (data.VMTL || 0) + (data.VMD || 0);
+    Number(data.vdm ?? data.VDM ?? 0) +
+    Number(data.vm ?? data.VM ?? 0) +
+    Number(data.vmtl ?? data.VMTL ?? 0) +
+    Number(data.vmd ?? data.VMD ?? 0);
 
   return {
-    code: data.FONKODU || "",
-    name: data.FONUNVAN || "",
-    date: parseTimestamp(data.TARIH),
-    stock: data.HS || 0,
-    governmentBond: data.DT || 0,
-    eurobond: data.EUT || 0,
-    repo: data.TPP || 0,
+    code: value<string>("fonKodu", "FONKODU") || "",
+    name: value<string>("fonUnvan", "FONUNVAN") || "",
+    date: parseTimestamp(value<string>("tarih", "TARIH") || ""),
+    stock: value<number>("hs", "HS") || 0,
+    governmentBond: value<number>("dt", "DT") || 0,
+    eurobond: value<number>("eut", "EUT") || 0,
+    repo: value<number>("tr", "TPP", "tp") || 0,
     deposit,
-    fund: data.BYF || 0,
-    foreignStock: data.YHS || 0,
-    foreignBond: data.YBA || 0,
-    other: data.D || 0,
+    fund: value<number>("byf", "BYF") || 0,
+    foreignStock: value<number>("yhs", "YHS") || 0,
+    foreignBond: value<number>("yba", "YBA") || 0,
+    other: value<number>("d", "D") || 0,
     rawData: data,
   };
 }

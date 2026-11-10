@@ -19,14 +19,14 @@ public class DataParser {
      */
     public static Fund parseFund(JsonObject json, FundType fundType) {
         Fund fund = new Fund();
-        fund.setCode(getString(json, "FONKODU"));
-        fund.setName(getString(json, "FONUNVAN"));
-        fund.setPrice(getDouble(json, "FIYAT"));
-        fund.setDate(DateHelper.parseDate(getString(json, "TARIH")));
+        fund.setCode(getString(json, "fonKodu", "FONKODU"));
+        fund.setName(getString(json, "fonUnvan", "FONUNVAN"));
+        fund.setPrice(getDouble(json, "fiyat", "FIYAT"));
+        fund.setDate(DateHelper.parseDate(getString(json, "tarih", "TARIH")));
         fund.setFundType(fundType);
-        fund.setTotalValue(getDouble(json, "PORTFOYBUYUKLUK"));
-        fund.setShareCount(getLong(json, "TEDPAYSAYISI"));
-        fund.setInvestorCount(getLong(json, "KISISAYISI"));
+        fund.setTotalValue(getDouble(json, "portfoyBuyukluk", "PORTFOYBUYUKLUK"));
+        fund.setShareCount(getLong(json, "tedPaySayisi", "TEDPAYSAYISI"));
+        fund.setInvestorCount(getLong(json, "kisiSayisi", "KISISAYISI"));
         fund.setRawData(toMap(json));
         return fund;
     }
@@ -36,12 +36,12 @@ public class DataParser {
      */
     public static FundPrice parseFundPrice(JsonObject json) {
         FundPrice price = new FundPrice();
-        price.setCode(getString(json, "FONKODU"));
-        price.setDate(DateHelper.parseDate(getString(json, "TARIH")));
-        price.setPrice(getDouble(json, "FIYAT"));
-        price.setShareCount(getLong(json, "TEDPAYSAYISI"));
-        price.setInvestorCount(getLong(json, "KISISAYISI"));
-        price.setTotalValue(getDouble(json, "PORTFOYBUYUKLUK"));
+        price.setCode(getString(json, "fonKodu", "FONKODU"));
+        price.setDate(DateHelper.parseDate(getString(json, "tarih", "TARIH")));
+        price.setPrice(getDouble(json, "fiyat", "FIYAT"));
+        price.setShareCount(getLong(json, "tedPaySayisi", "TEDPAYSAYISI"));
+        price.setInvestorCount(getLong(json, "kisiSayisi", "KISISAYISI"));
+        price.setTotalValue(getDouble(json, "portfoyBuyukluk", "PORTFOYBUYUKLUK"));
         return price;
     }
 
@@ -50,29 +50,33 @@ public class DataParser {
      */
     public static FundAllocation parseAllocation(JsonObject json) {
         FundAllocation alloc = new FundAllocation();
-        alloc.setCode(getString(json, "FONKODU"));
-        alloc.setName(getString(json, "PIESSION"));
-        alloc.setDate(DateHelper.parseDate(getString(json, "TARIH")));
-        alloc.setStock(getDouble(json, "HISSE"));
-        alloc.setGovernmentBond(getDouble(json, "DEVLET"));
-        alloc.setEurobond(getDouble(json, "EUROBOND"));
-        alloc.setRepo(getDouble(json, "REPO"));
-        alloc.setDeposit(getDouble(json, "MEVDUAT"));
-        alloc.setFund(getDouble(json, "FON"));
-        alloc.setForeignStock(getDouble(json, "YABANCIHISSE"));
-        alloc.setForeignBond(getDouble(json, "YABANCITAHVIL"));
-        alloc.setOther(getDouble(json, "DIGER"));
+        alloc.setCode(getString(json, "fonKodu", "FONKODU"));
+        alloc.setName(getString(json, "fonUnvan", "FONUNVAN", "PIESSION"));
+        alloc.setDate(DateHelper.parseDate(getString(json, "tarih", "TARIH")));
+        alloc.setStock(getDouble(json, "hs", "HS", "HISSE"));
+        alloc.setGovernmentBond(getDouble(json, "dt", "DT", "DEVLET"));
+        alloc.setEurobond(getDouble(json, "eut", "EUT", "EUROBOND"));
+        alloc.setRepo(getDouble(json, "tr", "TPP", "REPO"));
+        alloc.setDeposit(getDouble(json, "vm", "VDM", "MEVDUAT"));
+        alloc.setFund(getDouble(json, "byf", "BYF", "FON"));
+        alloc.setForeignStock(getDouble(json, "yhs", "YHS", "YABANCIHISSE"));
+        alloc.setForeignBond(getDouble(json, "yba", "YBA", "YABANCITAHVIL"));
+        alloc.setOther(getDouble(json, "d", "D", "DIGER"));
         alloc.setRawData(toMap(json));
         return alloc;
     }
 
-    private static String getString(JsonObject json, String key) {
-        JsonElement el = json.get(key);
-        return el != null && !el.isJsonNull() ? el.getAsString() : "";
+    private static String getString(JsonObject json, String... keys) {
+        for (String key : keys) {
+            JsonElement el = json.get(key);
+            if (el != null && !el.isJsonNull()) return el.getAsString();
+        }
+        return "";
     }
 
-    private static double getDouble(JsonObject json, String key) {
-        JsonElement el = json.get(key);
+    private static double getDouble(JsonObject json, String... keys) {
+        JsonElement el = null;
+        for (String key : keys) { if (json.has(key)) { el = json.get(key); break; } }
         if (el == null || el.isJsonNull()) return 0.0;
         try {
             return el.getAsDouble();
@@ -81,8 +85,9 @@ public class DataParser {
         }
     }
 
-    private static long getLong(JsonObject json, String key) {
-        JsonElement el = json.get(key);
+    private static long getLong(JsonObject json, String... keys) {
+        JsonElement el = null;
+        for (String key : keys) { if (json.has(key)) { el = json.get(key); break; } }
         if (el == null || el.isJsonNull()) return 0L;
         try {
             return el.getAsLong();
