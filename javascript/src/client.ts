@@ -57,7 +57,7 @@ export class TefasClient {
       "Accept-Language": "tr-TR,tr;q=0.9,en;q=0.8",
     });
 
-    await this.page.goto(`${BASE_URL}/TarihselVeriler.aspx`, {
+    await this.page.goto(`${BASE_URL}/tr/fon-verileri`, {
       waitUntil: "domcontentloaded",
     });
 
@@ -89,15 +89,13 @@ export class TefasClient {
 
     const result = await this.page.evaluate(
       async ({ endpoint, params }) => {
-        const searchParams = new URLSearchParams(params as Record<string, string>);
-
-        const res = await fetch(`/api/DB/${endpoint}`, {
+        const res = await fetch(`/api/funds/${endpoint}`, {
           method: "POST",
           headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-            "X-Requested-With": "XMLHttpRequest",
+            "Accept": "application/json",
+            "Content-Type": "application/json",
           },
-          body: searchParams.toString(),
+          body: JSON.stringify(params),
         });
 
         const text = await res.text();
@@ -106,7 +104,12 @@ export class TefasClient {
           throw new Error("WAF_BLOCKED");
         }
 
-        return JSON.parse(text);
+        if (!res.ok) throw new Error(`HTTP ${res.status}: ${text.slice(0, 200)}`);
+        const data = JSON.parse(text) as ApiResponse<T>;
+        if (data.errorCode || data.errorMessage) {
+          throw new Error(`${data.errorMessage || "TEFAS API error"}${data.errorCode ? ` (${data.errorCode})` : ""}`);
+        }
+        return data;
       },
       { endpoint, params }
     );
@@ -127,15 +130,23 @@ export class TefasClient {
     const end = endDate || getLastBusinessDay();
 
     return {
-      fontip: fundType,
-      sfontur: "",
-      fonkod: fundCode,
-      fongrup: "",
-      bastarih: formatDate(start),
-      bittarih: formatDate(end),
-      fonturkod: "",
-      fonunvantip: "",
-      kurucukod: "",
+      fonTipi: fundType,
+      fonKodu: fundCode || null,
+      aramaMetni: null,
+      fonTurKod: null,
+      fonGrubu: null,
+      sfonTurKod: null,
+      fonTurAciklama: null,
+      kurucuKod: null,
+      basTarih: formatDate(start),
+      bitTarih: formatDate(end),
+      basSira: 1,
+      bitSira: 100000,
+      dil: "TR",
+      sFonTurKod: "",
+      fonKod: "",
+      fonGrup: "",
+      fonUnvanTip: "",
     };
   }
 
@@ -150,8 +161,8 @@ export class TefasClient {
   ): Promise<Fund[]> {
     const date = targetDate || getLastBusinessDay();
     const params = this.buildParams(fundType, "", date, date);
-    const result = await this.callApi<RawFundData>("BindHistoryInfo", params);
-    return result.data.map((item) => parseFund(item, fundType));
+    const result = await this.callApi<RawFundData>("fonGnlBlgSiraliGetir", params);
+    return (result.resultList || []).map((item) => parseFund(item, fundType));
   }
 
   /**
@@ -164,10 +175,10 @@ export class TefasClient {
   ): Promise<Fund | null> {
     const date = targetDate || getLastBusinessDay();
     const params = this.buildParams(fundType, code.toUpperCase(), date, date);
-    const result = await this.callApi<RawFundData>("BindHistoryInfo", params);
+    const result = await this.callApi<RawFundData>("fonGnlBlgSiraliGetir", params);
 
-    if (!result.data.length) return null;
-    return parseFund(result.data[0], fundType);
+    if (!result.resultList?.length) return null;
+    return parseFund(result.resultList[0], fundType);
   }
 
   /**
@@ -196,8 +207,8 @@ export class TefasClient {
     }
 
     const params = this.buildParams(fundType, code.toUpperCase(), startDate, endDate);
-    const result = await this.callApi<RawFundData>("BindHistoryInfo", params);
-    return result.data.map(parseFundPrice);
+    const result = await this.callApi<RawFundData>("fonGnlBlgSiraliGetir", params);
+    return (result.resultList || []).map(parseFundPrice);
   }
 
   /**
@@ -210,8 +221,9 @@ export class TefasClient {
   ): Promise<FundAllocation[]> {
     const date = targetDate || getLastBusinessDay();
     const params = this.buildParams(fundType, code.toUpperCase(), date, date);
-    const result = await this.callApi<RawAllocationData>("BindHistoryAllocation", params);
-    return result.data.map(parseAllocation);
+    params.fonKod = code.toUpperCase();
+    const result = await this.callApi<RawAllocationData>("dagilimSiraliGetirT", params);
+    return (result.resultList || []).map(parseAllocation);
   }
 
   /**
@@ -292,16 +304,13 @@ export class TefasClient {
    * Fon kodlarını getir
    */
   async getFundCodes(): Promise<string[]> {
-    if (!this.started) await this.start();
-    if (!this.page) throw new Error("Page not initialized");
-
-    const result = await this.page.evaluate(async () => {
-      const res = await fetch("/api/DB/");
-      const data = await res.json();
-      return data.map((item: { FundCode: string }) => item.FundCode);
-    });
-
-    return result as string[];
+    const result = await this.callApi<RawFundData>(
+      "fonGnlBlgSiraliGetir",
+      this.buildParams("YAT" as FundType)
+    );
+    return (result.resultList || [])
+      .map((item) => item.fonKodu || item.FONKODU || "")
+      .filter(Boolean);
   }
 
   private sleep(ms: number): Promise<void> {

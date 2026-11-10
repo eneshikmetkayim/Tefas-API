@@ -7,6 +7,28 @@ from datetime import date, datetime
 from enum import Enum
 from typing import Optional
 
+def _value(data: dict, *keys, default=None):
+    for key in keys:
+        if key in data and data[key] is not None:
+            return data[key]
+    return default
+
+def _parse_api_date(value) -> date:
+    if not value:
+        return date.today()
+    if isinstance(value, (int, float)):
+        return datetime.fromtimestamp(value / 1000).date()
+    text = str(value)
+    for fmt in ("%Y%m%d", "%Y-%m-%d", "%d.%m.%Y", "%Y-%m-%dT%H:%M:%S"):
+        try:
+            return datetime.strptime(text[:19], fmt).date()
+        except ValueError:
+            pass
+    try:
+        return datetime.fromtimestamp(int(text) / 1000).date()
+    except (ValueError, TypeError):
+        return date.today()
+
 
 class FundType(str, Enum):
     """Fon tipleri"""
@@ -72,20 +94,17 @@ class Fund:
     def from_api_response(cls, data: dict, fund_type: FundType = FundType.YAT) -> "Fund":
         """API yanıtından Fund nesnesi oluştur"""
         # Timestamp'i date'e çevir
-        timestamp = data.get("TARIH", 0)
-        if isinstance(timestamp, str):
-            timestamp = int(timestamp)
-        fund_date = datetime.fromtimestamp(timestamp / 1000).date() if timestamp else date.today()
+        fund_date = _parse_api_date(_value(data, "tarih", "TARIH"))
         
         return cls(
-            code=data.get("FONKODU", ""),
-            name=data.get("FONUNVAN", ""),
-            price=float(data.get("FIYAT", 0) or 0),
+            code=_value(data, "fonKodu", "FONKODU", default=""),
+            name=_value(data, "fonUnvan", "FONUNVAN", default=""),
+            price=float(_value(data, "fiyat", "FIYAT", default=0) or 0),
             date=fund_date,
             fund_type=fund_type,
-            total_value=float(data.get("PORTFOYBUYUKLUK", 0) or 0),
-            share_count=int(data.get("TEDPAYSAYISI", 0) or 0),
-            investor_count=int(data.get("KISISAYISI", 0) or 0),
+            total_value=float(_value(data, "portfoyBuyukluk", "PORTFOYBUYUKLUK", default=0) or 0),
+            share_count=int(_value(data, "tedPaySayisi", "TEDPAYSAYISI", default=0) or 0),
+            investor_count=int(_value(data, "kisiSayisi", "KISISAYISI", default=0) or 0),
             raw_data=data
         )
     
@@ -109,18 +128,15 @@ class FundPrice:
     @classmethod
     def from_api_response(cls, data: dict) -> "FundPrice":
         """API yanıtından FundPrice nesnesi oluştur"""
-        timestamp = data.get("TARIH", 0)
-        if isinstance(timestamp, str):
-            timestamp = int(timestamp)
-        price_date = datetime.fromtimestamp(timestamp / 1000).date() if timestamp else date.today()
+        price_date = _parse_api_date(_value(data, "tarih", "TARIH"))
         
         return cls(
-            code=data.get("FONKODU", ""),
+            code=_value(data, "fonKodu", "FONKODU", default=""),
             date=price_date,
-            price=float(data.get("FIYAT", 0) or 0),
-            share_count=int(data.get("TEDPAYSAYISI", 0) or 0),
-            investor_count=int(data.get("KISISAYISI", 0) or 0),
-            total_value=float(data.get("PORTFOYBUYUKLUK", 0) or 0)
+            price=float(_value(data, "fiyat", "FIYAT", default=0) or 0),
+            share_count=int(_value(data, "tedPaySayisi", "TEDPAYSAYISI", default=0) or 0),
+            investor_count=int(_value(data, "kisiSayisi", "KISISAYISI", default=0) or 0),
+            total_value=float(_value(data, "portfoyBuyukluk", "PORTFOYBUYUKLUK", default=0) or 0)
         )
     
     def __str__(self) -> str:
@@ -153,30 +169,27 @@ class FundAllocation:
     @classmethod
     def from_api_response(cls, data: dict) -> "FundAllocation":
         """API yanıtından FundAllocation nesnesi oluştur"""
-        timestamp = data.get("TARIH", 0)
-        if isinstance(timestamp, str):
-            timestamp = int(timestamp)
-        alloc_date = datetime.fromtimestamp(timestamp / 1000).date() if timestamp else date.today()
+        alloc_date = _parse_api_date(_value(data, "tarih", "TARIH"))
         
         # Mevduat toplamı
-        deposit = (float(data.get("VDM", 0) or 0) + 
-                   float(data.get("VM", 0) or 0) +
-                   float(data.get("VMTL", 0) or 0) +
-                   float(data.get("VMD", 0) or 0))
+        deposit = (float(_value(data, "vdm", "VDM", default=0) or 0) +
+                   float(_value(data, "vm", "VM", default=0) or 0) +
+                   float(_value(data, "vmtl", "VMTL", default=0) or 0) +
+                   float(_value(data, "vmd", "VMD", default=0) or 0))
         
         return cls(
-            code=data.get("FONKODU", ""),
-            name=data.get("FONUNVAN", ""),
+            code=_value(data, "fonKodu", "FONKODU", default=""),
+            name=_value(data, "fonUnvan", "FONUNVAN", "PIESSION", default=""),
             date=alloc_date,
-            stock=float(data.get("HS", 0) or 0),
-            government_bond=float(data.get("DT", 0) or 0),
-            eurobond=float(data.get("EUT", 0) or 0),
-            repo=float(data.get("TPP", 0) or 0),
+            stock=float(_value(data, "hs", "HS", "hisse", default=0) or 0),
+            government_bond=float(_value(data, "dt", "DT", "devlet", default=0) or 0),
+            eurobond=float(_value(data, "eut", "EUT", "eurobond", default=0) or 0),
+            repo=float(_value(data, "tr", "TPP", "tp", "repo", default=0) or 0),
             deposit=deposit,
-            fund=float(data.get("BYF", 0) or 0),
-            foreign_stock=float(data.get("YHS", 0) or 0),
-            foreign_bond=float(data.get("YBA", 0) or 0),
-            other=float(data.get("D", 0) or 0),
+            fund=float(_value(data, "byf", "BYF", default=0) or 0),
+            foreign_stock=float(_value(data, "yhs", "YHS", default=0) or 0),
+            foreign_bond=float(_value(data, "yba", "YBA", default=0) or 0),
+            other=float(_value(data, "d", "D", default=0) or 0),
             raw_data=data
         )
     

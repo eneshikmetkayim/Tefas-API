@@ -100,7 +100,7 @@ class TefasClient:
             
             # İlk sayfa ziyareti (cookie için)
             await self._page.goto(
-                f"{self.BASE_URL}/TarihselVeriler.aspx",
+                f"{self.BASE_URL}/tr/fon-verileri",
                 wait_until="domcontentloaded"
             )
             await asyncio.sleep(1)
@@ -136,14 +136,13 @@ class TefasClient:
             result = await self._page.evaluate(f"""
                 async () => {{
                     try {{
-                        const params = new URLSearchParams({params_json});
-                        const res = await fetch('/api/DB/{endpoint}', {{
+                        const res = await fetch('/api/funds/{endpoint}', {{
                             method: '{method}',
                             headers: {{
-                                'Content-Type': 'application/x-www-form-urlencoded',
-                                'X-Requested-With': 'XMLHttpRequest'
+                                'Accept': 'application/json',
+                                'Content-Type': 'application/json'
                             }},
-                            body: params.toString()
+                            body: JSON.stringify({params_json})
                         }});
                         
                         const text = await res.text();
@@ -153,8 +152,15 @@ class TefasClient:
                             return {{ error: 'WAF_BLOCKED', message: 'İstek WAF tarafından engellendi' }};
                         }}
                         
+                        if (!res.ok) {{
+                            return {{ error: 'HTTP_ERROR', message: `HTTP ${{res.status}}: ${{text.substring(0, 200)}}` }};
+                        }}
                         try {{
-                            return {{ success: true, data: JSON.parse(text) }};
+                            const data = JSON.parse(text);
+                            if (data.errorCode || data.errorMessage) {{
+                                return {{ error: 'API_ERROR', code: data.errorCode, message: data.errorMessage || 'TEFAS API hatası' }};
+                            }}
+                            return {{ success: true, data }};
                         }} catch {{
                             return {{ error: 'PARSE_ERROR', message: text.substring(0, 200) }};
                         }}
@@ -168,7 +174,10 @@ class TefasClient:
                 raise TefasWAFError(result.get("message", "WAF engeli"))
             
             if result.get("error"):
-                raise TefasDataError(result.get("message", "API hatası"))
+                message = result.get("message", "API hatası")
+                if result.get("code"):
+                    message += f" (kod: {result['code']})"
+                raise TefasDataError(message)
             
             return result.get("data", {})
             
@@ -192,15 +201,23 @@ class TefasClient:
             end_date = date.today()
         
         return {
-            "fontip": fund_type.value,
-            "sfontur": kwargs.get("sub_type", ""),
-            "fonkod": fund_code,
-            "fongrup": kwargs.get("fund_group", ""),
-            "bastarih": start_date.strftime("%d.%m.%Y"),
-            "bittarih": end_date.strftime("%d.%m.%Y"),
-            "fonturkod": kwargs.get("fund_type_code", ""),
-            "fonunvantip": kwargs.get("fund_title_type", ""),
-            "kurucukod": kwargs.get("founder_code", "")
+            "fonTipi": fund_type.value,
+            "fonKodu": fund_code or None,
+            "aramaMetni": None,
+            "fonTurKod": None,
+            "fonGrubu": None,
+            "sfonTurKod": None,
+            "fonTurAciklama": None,
+            "kurucuKod": None,
+            "basTarih": start_date.strftime("%Y%m%d"),
+            "bitTarih": end_date.strftime("%Y%m%d"),
+            "basSira": 1,
+            "bitSira": 100000,
+            "dil": "TR",
+            "sFonTurKod": "",
+            "fonKod": "",
+            "fonGrup": "",
+            "fonUnvanTip": ""
         }
     
     # ==================== Public API Methods ====================
@@ -229,9 +246,9 @@ class TefasClient:
             target_date = self._get_last_business_day()
         
         params = self._build_params(fund_type, "", target_date, target_date)
-        result = await self._call_api("BindHistoryInfo", params)
+        result = await self._call_api("fonGnlBlgSiraliGetir", params)
         
-        data = result.get("data", [])
+        data = result.get("resultList") or []
         return [Fund.from_api_response(item, fund_type) for item in data]
     
     async def get_fund(
@@ -259,9 +276,9 @@ class TefasClient:
             target_date = self._get_last_business_day()
         
         params = self._build_params(fund_type, code.upper(), target_date, target_date)
-        result = await self._call_api("BindHistoryInfo", params)
+        result = await self._call_api("fonGnlBlgSiraliGetir", params)
         
-        data = result.get("data", [])
+        data = result.get("resultList") or []
         if not data:
             return None
         
@@ -302,9 +319,9 @@ class TefasClient:
             start_date = end_date - timedelta(days=30)
         
         params = self._build_params(fund_type, code.upper(), start_date, end_date)
-        result = await self._call_api("BindHistoryInfo", params)
+        result = await self._call_api("fonGnlBlgSiraliGetir", params)
         
-        data = result.get("data", [])
+        data = result.get("resultList") or []
         return [FundPrice.from_api_response(item) for item in data]
     
     async def get_allocation(
@@ -333,9 +350,10 @@ class TefasClient:
             target_date = self._get_last_business_day()
         
         params = self._build_params(fund_type, code.upper(), target_date, target_date)
-        result = await self._call_api("BindHistoryAllocation", params)
+        params["fonKod"] = code.upper() or None
+        result = await self._call_api("dagilimSiraliGetirT", params)
         
-        data = result.get("data", [])
+        data = result.get("resultList") or []
         return [FundAllocation.from_api_response(item) for item in data]
     
     async def get_top_funds(
@@ -457,19 +475,8 @@ class TefasClient:
         if not self._started:
             await self.start()
         
-        result = await self._page.evaluate("""
-            async () => {
-                try {
-                    const res = await fetch('/api/DB/');
-                    const data = await res.json();
-                    return data.map(item => item.FundCode);
-                } catch {
-                    return [];
-                }
-            }
-        """)
-        
-        return result or []
+        result = await self._call_api("fonGnlBlgSiraliGetir", self._build_params(FundType.YAT))
+        return [item.get("fonKodu") or item.get("FONKODU") for item in (result.get("resultList") or [])]
     
     # ==================== Sync Wrappers ====================
     

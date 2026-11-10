@@ -8,7 +8,7 @@ import java.time.format.DateTimeFormatter;
  * Tarih yardımcı sınıfı
  */
 public class DateHelper {
-    private static final DateTimeFormatter API_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+    private static final DateTimeFormatter API_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd");
     private static final DateTimeFormatter PARSE_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
 
     private DateHelper() {}
@@ -42,10 +42,12 @@ public class DateHelper {
         if (dateStr == null || dateStr.isEmpty()) {
             return LocalDate.now();
         }
-        try {
-            return LocalDate.parse(dateStr, PARSE_FORMAT);
-        } catch (Exception e) {
-            return LocalDate.now();
+        for (DateTimeFormatter formatter : new DateTimeFormatter[] {
+                DateTimeFormatter.ofPattern("yyyyMMdd"),
+                DateTimeFormatter.ISO_LOCAL_DATE, PARSE_FORMAT }) {
+            try { return LocalDate.parse(dateStr.substring(0, Math.min(dateStr.length(), 10)), formatter); }
+            catch (Exception ignored) {}
         }
+        return LocalDate.now();
     }
 }

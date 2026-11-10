@@ -106,42 +106,53 @@ export interface TefasClientOptions {
 
 /** API parametreleri */
 export interface ApiParams {
-  fontip: string;
-  sfontur: string;
-  fonkod: string;
-  fongrup: string;
-  bastarih: string;
-  bittarih: string;
-  fonturkod: string;
-  fonunvantip: string;
-  kurucukod: string;
+  fonTipi: string;
+  fonKodu: string | null;
+  aramaMetni: string | null;
+  fonTurKod: string | null;
+  fonGrubu: string | null;
+  sfonTurKod: string | null;
+  fonTurAciklama: string | null;
+  kurucuKod: string | null;
+  basTarih: string;
+  bitTarih: string;
+  basSira: number;
+  bitSira: number;
+  dil: string;
+  sFonTurKod: string;
+  fonKod: string;
+  fonGrup: string;
+  fonUnvanTip: string;
 }
 
 /** API yanıtı */
 export interface ApiResponse<T> {
-  draw: number;
-  recordsTotal: number;
-  recordsFiltered: number;
-  data: T[];
+  errorCode?: string | number | null;
+  errorMessage?: string | null;
+  resultList?: T[];
+  toplamSayi?: number;
+  toplamSayfa?: number;
 }
 
 /** Ham fon verisi (API'den gelen) */
 export interface RawFundData {
-  TARIH: string;
-  FONKODU: string;
-  FONUNVAN: string;
-  FIYAT: number;
-  TEDPAYSAYISI: number;
-  KISISAYISI: number;
-  PORTFOYBUYUKLUK: number;
-  BORSABULTENFIYAT?: string;
+  tarih?: string;
+  fonKodu?: string;
+  fonUnvan?: string;
+  fiyat?: number;
+  tedPaySayisi?: number;
+  kisiSayisi?: number;
+  portfoyBuyukluk?: number;
+  TARIH?: string; FONKODU?: string; FONUNVAN?: string; FIYAT?: number;
+  TEDPAYSAYISI?: number; KISISAYISI?: number; PORTFOYBUYUKLUK?: number;
 }
 
 /** Ham varlık dağılımı verisi */
 export interface RawAllocationData {
-  TARIH: string;
-  FONKODU: string;
-  FONUNVAN: string;
+  tarih?: string;
+  fonKodu?: string;
+  fonUnvan?: string;
+  TARIH?: string; FONKODU?: string; FONUNVAN?: string;
   HS?: number;
   DT?: number;
   EUT?: number;

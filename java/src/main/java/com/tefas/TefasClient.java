@@ -52,7 +52,7 @@ public class TefasClient implements AutoCloseable {
         page.setDefaultNavigationTimeout(options.getTimeout());
 
         page.setExtraHTTPHeaders(Map.of("Accept-Language", "tr-TR,tr;q=0.9,en;q=0.8"));
-        page.navigate(BASE_URL + "/TarihselVeriler.aspx", 
+        page.navigate(BASE_URL + "/tr/fon-verileri",
             new Page.NavigateOptions().setWaitUntil(WaitUntilState.DOMCONTENTLOADED));
         
         try { Thread.sleep(1000); } catch (InterruptedException ignored) {}
@@ -67,52 +67,55 @@ public class TefasClient implements AutoCloseable {
     }
 
 
-    private JsonArray callApi(String endpoint, Map<String, String> params) {
+    private JsonArray callApi(String endpoint, Map<String, Object> params) {
         if (!started) start();
 
         String paramsJson = gson.toJson(params);
         String script = String.format("""
             async () => {
-                const params = new URLSearchParams(%s);
-                const res = await fetch('/api/DB/%s', {
+                const res = await fetch('/api/funds/%s', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                        'X-Requested-With': 'XMLHttpRequest'
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
                     },
-                    body: params.toString()
+                    body: JSON.stringify(%s)
                 });
                 const text = await res.text();
                 if (text.includes('Erişim Engellendi') || text.includes('Web Application Firewall')) {
                     throw new Error('WAF_BLOCKED');
                 }
-                return JSON.parse(text);
+                if (!res.ok) throw new Error('HTTP ' + res.status + ': ' + text.substring(0, 200));
+                const data = JSON.parse(text);
+                if (data.errorCode || data.errorMessage) throw new Error(data.errorMessage || 'TEFAS API error');
+                return data;
             }
-            """, paramsJson, endpoint);
+            """, endpoint, paramsJson);
 
         Object result = page.evaluate(script);
         JsonObject response = gson.toJsonTree(result).getAsJsonObject();
         
-        if (response.has("data") && response.get("data").isJsonArray()) {
-            return response.getAsJsonArray("data");
+        if (response.has("resultList") && response.get("resultList").isJsonArray()) {
+            return response.getAsJsonArray("resultList");
         }
         return new JsonArray();
     }
 
-    private Map<String, String> buildParams(FundType fundType, String fundCode, LocalDate startDate, LocalDate endDate) {
+    private Map<String, Object> buildParams(FundType fundType, String fundCode, LocalDate startDate, LocalDate endDate) {
         LocalDate start = startDate != null ? startDate : DateHelper.getLastBusinessDay();
         LocalDate end = endDate != null ? endDate : DateHelper.getLastBusinessDay();
 
-        Map<String, String> params = new LinkedHashMap<>();
-        params.put("fontip", fundType.name());
-        params.put("sfontur", "");
-        params.put("fonkod", fundCode != null ? fundCode : "");
-        params.put("fongrup", "");
-        params.put("bastarih", DateHelper.formatDate(start));
-        params.put("bittarih", DateHelper.formatDate(end));
-        params.put("fonturkod", "");
-        params.put("fonunvantip", "");
-        params.put("kurucukod", "");
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("fonTipi", fundType.name());
+        params.put("fonKodu", fundCode);
+        params.put("aramaMetni", null); params.put("fonTurKod", null);
+        params.put("fonGrubu", null); params.put("sfonTurKod", null);
+        params.put("fonTurAciklama", null); params.put("kurucuKod", null);
+        params.put("basTarih", DateHelper.formatDate(start));
+        params.put("bitTarih", DateHelper.formatDate(end));
+        params.put("basSira", 1); params.put("bitSira", 100000); params.put("dil", "TR");
+        params.put("sFonTurKod", ""); params.put("fonKod", "");
+        params.put("fonGrup", ""); params.put("fonUnvanTip", "");
         return params;
     }
 
@@ -124,7 +127,7 @@ public class TefasClient implements AutoCloseable {
     public List<Fund> getFunds(FundType fundType, LocalDate targetDate) {
         LocalDate date = targetDate != null ? targetDate : DateHelper.getLastBusinessDay();
         Map<String, String> params = buildParams(fundType, "", date, date);
-        JsonArray data = callApi("BindHistoryInfo", params);
+        JsonArray data = callApi("fonGnlBlgSiraliGetir", params);
 
         List<Fund> funds = new ArrayList<>();
         for (JsonElement el : data) {
@@ -143,7 +146,7 @@ public class TefasClient implements AutoCloseable {
     public Optional<Fund> getFund(String code, FundType fundType, LocalDate targetDate) {
         LocalDate date = targetDate != null ? targetDate : DateHelper.getLastBusinessDay();
         Map<String, String> params = buildParams(fundType, code.toUpperCase(), date, date);
-        JsonArray data = callApi("BindHistoryInfo", params);
+        JsonArray data = callApi("fonGnlBlgSiraliGetir", params);
 
         if (data.size() > 0) {
             return Optional.of(DataParser.parseFund(data.get(0).getAsJsonObject(), fundType));
@@ -163,7 +166,7 @@ public class TefasClient implements AutoCloseable {
         LocalDate start = startDate != null ? startDate : end.minusDays(30);
 
         Map<String, String> params = buildParams(fundType, code.toUpperCase(), start, end);
-        JsonArray data = callApi("BindHistoryInfo", params);
+        JsonArray data = callApi("fonGnlBlgSiraliGetir", params);
 
         List<FundPrice> prices = new ArrayList<>();
         for (JsonElement el : data) {
@@ -183,7 +186,8 @@ public class TefasClient implements AutoCloseable {
     public List<FundAllocation> getAllocation(String code, FundType fundType, LocalDate targetDate) {
         LocalDate date = targetDate != null ? targetDate : DateHelper.getLastBusinessDay();
         Map<String, String> params = buildParams(fundType, code != null ? code.toUpperCase() : "", date, date);
-        JsonArray data = callApi("BindHistoryAllocation", params);
+        params.put("fonKod", code != null && !code.isBlank() ? code.toUpperCase() : null);
+        JsonArray data = callApi("dagilimSiraliGetirT", params);
 
         List<FundAllocation> allocations = new ArrayList<>();
         for (JsonElement el : data) {

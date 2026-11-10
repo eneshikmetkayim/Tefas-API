@@ -46,7 +46,7 @@ public class TefasClient : IAsyncDisposable
             ["Accept-Language"] = "tr-TR,tr;q=0.9,en;q=0.8"
         });
 
-        await _page.GotoAsync($"{BaseUrl}/TarihselVeriler.aspx", 
+        await _page.GotoAsync($"{BaseUrl}/tr/fon-verileri",
             new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
         
         await Task.Delay(1000);
@@ -65,7 +65,7 @@ public class TefasClient : IAsyncDisposable
         _started = false;
     }
 
-    private async Task<JsonElement> CallApiAsync(string endpoint, Dictionary<string, string> parameters)
+    private async Task<JsonElement> CallApiAsync(string endpoint, Dictionary<string, object?> parameters)
     {
         if (!_started) await StartAsync();
         if (_page == null) throw new InvalidOperationException("Page not initialized");
@@ -74,20 +74,23 @@ public class TefasClient : IAsyncDisposable
         
         var script = $@"
             async () => {{
-                const params = new URLSearchParams({paramsJson});
-                const res = await fetch('/api/DB/{endpoint}', {{
+                const res = await fetch('/api/funds/{endpoint}', {{
                     method: 'POST',
                     headers: {{
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                        'X-Requested-With': 'XMLHttpRequest'
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
                     }},
-                    body: params.toString()
+                    body: JSON.stringify({paramsJson})
                 }});
                 const text = await res.text();
                 if (text.includes('Erişim Engellendi') || text.includes('Web Application Firewall')) {{
                     throw new Error('WAF_BLOCKED');
                 }}
-                return JSON.parse(text);
+                if (!res.ok) throw new Error(`HTTP ${{res.status}}: ${{text.substring(0, 200)}}`);
+                const data = JSON.parse(text);
+                if (data.errorCode || data.errorMessage) throw new Error(
+                    (data.errorMessage || 'TEFAS API error') + (data.errorCode ? ` (${{data.errorCode}})` : ''));
+                return data;
             }}
         ";
 
@@ -95,7 +98,7 @@ public class TefasClient : IAsyncDisposable
         return result;
     }
 
-    private Dictionary<string, string> BuildParams(
+    private Dictionary<string, object?> BuildParams(
         FundType fundType, 
         string fundCode = "", 
         DateTime? startDate = null, 
@@ -104,17 +107,25 @@ public class TefasClient : IAsyncDisposable
         var start = startDate ?? DateHelper.GetLastBusinessDay();
         var end = endDate ?? DateHelper.GetLastBusinessDay();
 
-        return new Dictionary<string, string>
+        return new Dictionary<string, object?>
         {
-            ["fontip"] = fundType.ToString(),
-            ["sfontur"] = "",
-            ["fonkod"] = fundCode,
-            ["fongrup"] = "",
-            ["bastarih"] = DateHelper.FormatDate(start),
-            ["bittarih"] = DateHelper.FormatDate(end),
-            ["fonturkod"] = "",
-            ["fonunvantip"] = "",
-            ["kurucukod"] = ""
+            ["fonTipi"] = fundType.ToString(),
+            ["fonKodu"] = fundCode,
+            ["aramaMetni"] = null,
+            ["fonTurKod"] = null,
+            ["fonGrubu"] = null,
+            ["sfonTurKod"] = null,
+            ["fonTurAciklama"] = null,
+            ["kurucuKod"] = null,
+            ["basTarih"] = DateHelper.FormatDate(start),
+            ["bitTarih"] = DateHelper.FormatDate(end),
+            ["basSira"] = 1,
+            ["bitSira"] = 100000,
+            ["dil"] = "TR",
+            ["sFonTurKod"] = "",
+            ["fonKod"] = "",
+            ["fonGrup"] = "",
+            ["fonUnvanTip"] = ""
         };
     }
 
@@ -129,10 +140,10 @@ public class TefasClient : IAsyncDisposable
     {
         var date = targetDate ?? DateHelper.GetLastBusinessDay();
         var parameters = BuildParams(fundType, "", date, date);
-        var result = await CallApiAsync("BindHistoryInfo", parameters);
+        var result = await CallApiAsync("fonGnlBlgSiraliGetir", parameters);
 
         var funds = new List<Fund>();
-        if (result.TryGetProperty("data", out var data) && data.ValueKind == JsonValueKind.Array)
+        if (result.TryGetProperty("resultList", out var data) && data.ValueKind == JsonValueKind.Array)
         {
             foreach (var item in data.EnumerateArray())
             {
@@ -152,9 +163,9 @@ public class TefasClient : IAsyncDisposable
     {
         var date = targetDate ?? DateHelper.GetLastBusinessDay();
         var parameters = BuildParams(fundType, code.ToUpper(), date, date);
-        var result = await CallApiAsync("BindHistoryInfo", parameters);
+        var result = await CallApiAsync("fonGnlBlgSiraliGetir", parameters);
 
-        if (result.TryGetProperty("data", out var data) && 
+        if (result.TryGetProperty("resultList", out var data) &&
             data.ValueKind == JsonValueKind.Array && 
             data.GetArrayLength() > 0)
         {
@@ -179,10 +190,10 @@ public class TefasClient : IAsyncDisposable
             : end.AddDays(-30));
 
         var parameters = BuildParams(fundType, code.ToUpper(), start, end);
-        var result = await CallApiAsync("BindHistoryInfo", parameters);
+        var result = await CallApiAsync("fonGnlBlgSiraliGetir", parameters);
 
         var prices = new List<FundPrice>();
-        if (result.TryGetProperty("data", out var data) && data.ValueKind == JsonValueKind.Array)
+        if (result.TryGetProperty("resultList", out var data) && data.ValueKind == JsonValueKind.Array)
         {
             foreach (var item in data.EnumerateArray())
             {
@@ -202,10 +213,11 @@ public class TefasClient : IAsyncDisposable
     {
         var date = targetDate ?? DateHelper.GetLastBusinessDay();
         var parameters = BuildParams(fundType, code.ToUpper(), date, date);
-        var result = await CallApiAsync("BindHistoryAllocation", parameters);
+        parameters["fonKod"] = string.IsNullOrWhiteSpace(code) ? null : code.ToUpperInvariant();
+        var result = await CallApiAsync("dagilimSiraliGetirT", parameters);
 
         var allocations = new List<FundAllocation>();
-        if (result.TryGetProperty("data", out var data) && data.ValueKind == JsonValueKind.Array)
+        if (result.TryGetProperty("resultList", out var data) && data.ValueKind == JsonValueKind.Array)
         {
             foreach (var item in data.EnumerateArray())
             {

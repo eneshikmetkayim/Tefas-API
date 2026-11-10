@@ -12,6 +12,9 @@ func ParseTimestamp(ts interface{}) time.Time {
 
 	switch v := ts.(type) {
 	case string:
+		if len(v) == 8 {
+			if parsed, err := time.Parse("20060102", v); err == nil { return parsed }
+		}
 		timestamp, _ = strconv.ParseInt(v, 10, 64)
 	case float64:
 		timestamp = int64(v)
@@ -24,8 +27,10 @@ func ParseTimestamp(ts interface{}) time.Time {
 
 // FormatDate formats date as DD.MM.YYYY
 func FormatDate(t time.Time) string {
-	return t.Format("02.01.2006")
+	return t.Format("20060102")
 }
+
+func stringPtr(value string) *string { return &value }
 
 // GetLastBusinessDay returns the last business day
 func GetLastBusinessDay() time.Time {
@@ -57,14 +62,14 @@ func FormatTotalValue(value float64) string {
 // parseFund converts raw data to Fund
 func parseFund(data map[string]interface{}, fundType FundType) Fund {
 	return Fund{
-		Code:          getString(data, "FONKODU"),
-		Name:          getString(data, "FONUNVAN"),
-		Price:         getFloat(data, "FIYAT"),
-		Date:          ParseTimestamp(data["TARIH"]),
+		Code:          getStringAny(data, "fonKodu", "FONKODU"),
+		Name:          getStringAny(data, "fonUnvan", "FONUNVAN"),
+		Price:         getFloatAny(data, "fiyat", "FIYAT"),
+		Date:          ParseTimestamp(anyValue(data, "tarih", "TARIH")),
 		FundType:      fundType,
-		TotalValue:    getFloat(data, "PORTFOYBUYUKLUK"),
-		ShareCount:    getInt(data, "TEDPAYSAYISI"),
-		InvestorCount: getInt(data, "KISISAYISI"),
+		TotalValue:    getFloatAny(data, "portfoyBuyukluk", "PORTFOYBUYUKLUK"),
+		ShareCount:    getIntAny(data, "tedPaySayisi", "TEDPAYSAYISI"),
+		InvestorCount: getIntAny(data, "kisiSayisi", "KISISAYISI"),
 		RawData:       data,
 	}
 }
@@ -72,35 +77,49 @@ func parseFund(data map[string]interface{}, fundType FundType) Fund {
 // parseFundPrice converts raw data to FundPrice
 func parseFundPrice(data map[string]interface{}) FundPrice {
 	return FundPrice{
-		Code:          getString(data, "FONKODU"),
-		Date:          ParseTimestamp(data["TARIH"]),
-		Price:         getFloat(data, "FIYAT"),
-		ShareCount:    getInt(data, "TEDPAYSAYISI"),
-		InvestorCount: getInt(data, "KISISAYISI"),
-		TotalValue:    getFloat(data, "PORTFOYBUYUKLUK"),
+		Code:          getStringAny(data, "fonKodu", "FONKODU"),
+		Date:          ParseTimestamp(anyValue(data, "tarih", "TARIH")),
+		Price:         getFloatAny(data, "fiyat", "FIYAT"),
+		ShareCount:    getIntAny(data, "tedPaySayisi", "TEDPAYSAYISI"),
+		InvestorCount: getIntAny(data, "kisiSayisi", "KISISAYISI"),
+		TotalValue:    getFloatAny(data, "portfoyBuyukluk", "PORTFOYBUYUKLUK"),
 	}
 }
 
 // parseAllocation converts raw data to FundAllocation
 func parseAllocation(data map[string]interface{}) FundAllocation {
-	deposit := getFloat(data, "VDM") + getFloat(data, "VM") +
-		getFloat(data, "VMTL") + getFloat(data, "VMD")
-
 	return FundAllocation{
-		Code:           getString(data, "FONKODU"),
-		Name:           getString(data, "FONUNVAN"),
-		Date:           ParseTimestamp(data["TARIH"]),
-		Stock:          getFloat(data, "HS"),
-		GovernmentBond: getFloat(data, "DT"),
-		Eurobond:       getFloat(data, "EUT"),
-		Repo:           getFloat(data, "TPP"),
-		Deposit:        deposit,
-		Fund:           getFloat(data, "BYF"),
-		ForeignStock:   getFloat(data, "YHS"),
-		ForeignBond:    getFloat(data, "YBA"),
-		Other:          getFloat(data, "D"),
+		Code:           getStringAny(data, "fonKodu", "FONKODU"),
+		Name:           getStringAny(data, "fonUnvan", "FONUNVAN"),
+		Date:           ParseTimestamp(anyValue(data, "tarih", "TARIH")),
+		Stock:          getFloatAny(data, "hs", "HS"),
+		GovernmentBond: getFloatAny(data, "dt", "DT"),
+		Eurobond:       getFloatAny(data, "eut", "EUT"),
+		Repo:           getFloatAny(data, "tr", "TPP", "tp"),
+		Deposit:        getFloatAny(data, "vm", "VDM", "VMTL", "VMD"),
+			Fund:           getFloatAny(data, "byf", "BYF"),
+			ForeignStock:   getFloatAny(data, "yhs", "YHS"),
+			ForeignBond:    getFloatAny(data, "yba", "YBA"),
+			Other:          getFloatAny(data, "d", "D"),
 		RawData:        data,
 	}
+}
+
+func anyValue(data map[string]interface{}, keys ...string) interface{} {
+		for _, key := range keys { if value, ok := data[key]; ok { return value } }
+		return nil
+}
+func getStringAny(data map[string]interface{}, keys ...string) string {
+		for _, key := range keys { if value := getString(data, key); value != "" { return value } }
+		return ""
+}
+func getFloatAny(data map[string]interface{}, keys ...string) float64 {
+		for _, key := range keys { if _, ok := data[key]; ok { return getFloat(data, key) } }
+		return 0
+}
+func getIntAny(data map[string]interface{}, keys ...string) int64 {
+		for _, key := range keys { if _, ok := data[key]; ok { return getInt(data, key) } }
+		return 0
 }
 
 func getString(data map[string]interface{}, key string) string {
