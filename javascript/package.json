@@ -36,16 +36,14 @@
   ],
   "author": "TEFAS API Contributors",
   "license": "MIT",
-  "dependencies": {},
   "devDependencies": {
-    "@types/node": "^20.19.27",
-    "ts-node": "^10.9.2",
+    "@types/node": "^22.0.0",
+    "tsup": "^9.0.0",
     "tsx": "^4.19.2",
-    "tsup": "^8.0.0",
-    "typescript": "^5.9.3"
+    "typescript": "^6.0.3"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.0.0"
   },
   "repository": {
     "type": "git",

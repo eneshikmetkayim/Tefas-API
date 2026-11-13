@@ -10,8 +10,8 @@ jobs:
   python:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - run: python -m unittest discover -s python/tests -v
@@ -22,10 +22,10 @@ jobs:
       run:
         working-directory: javascript
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
-          node-version: "20"
+          node-version: "22"
           cache: npm
           cache-dependency-path: javascript/package-lock.json
       - run: npm ci
@@ -39,10 +39,11 @@ jobs:
       run:
         working-directory: go
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
           go-version: "1.22"
+          cache: false
       - run: go test -v ./...
       - run: go build ./...
 
@@ -52,8 +53,8 @@ jobs:
       run:
         working-directory: dotnet
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: "8.0.x"
       - run: dotnet restore
@@ -66,13 +67,17 @@ jobs:
       run:
         working-directory: java
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: "21"
           cache: maven
       - run: mvn -B test
+      - uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: current
+      - run: gradle test --no-daemon
 
   rust:
     runs-on: ubuntu-latest
@@ -80,7 +85,8 @@ jobs:
       run:
         working-directory: rust
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: cargo fmt --check
+      - run: cargo clippy --all-targets -- -D warnings
       - run: cargo test
       - run: cargo build --examples

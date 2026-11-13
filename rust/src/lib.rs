@@ -1276,7 +1276,7 @@ impl TefasClient {
         }
         let body = json!({ "fonKodu": normalized, "dil": lang, "periyod": period });
         let mut rows: Vec<FundPrice> = self.post("fonFiyatBilgiGetir", &body).await?;
-        rows.sort_by(|a, b| normalize_iso_date(&b.date).cmp(&normalize_iso_date(&a.date)));
+        rows.sort_by_key(|a| std::cmp::Reverse(normalize_iso_date(&a.date)));
         Ok(rows)
     }
 

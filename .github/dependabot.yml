@@ -4,6 +4,11 @@ updates:
     directory: /javascript
     schedule:
       interval: weekly
+    ignore:
+      - dependency-name: "@types/node"
+        versions: [">= 23.0.0"]
+      - dependency-name: "typescript"
+        versions: [">= 7.0.0"]
   - package-ecosystem: pip
     directory: /python
     schedule:
@@ -17,6 +22,10 @@ updates:
     schedule:
       interval: weekly
   - package-ecosystem: gradle
+    directory: /java
+    schedule:
+      interval: weekly
+  - package-ecosystem: maven
     directory: /java
     schedule:
       interval: weekly
