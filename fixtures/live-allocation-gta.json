@@ -1,0 +1,27 @@
+{
+  "errorCode": null,
+  "errorMessage": null,
+  "resultList": [
+    {
+      "fonKodu": "GTA",
+      "fonUnvan": "GARANTİ PORTFÖY ALTIN FONU",
+      "tarih": "2026-11-12",
+      "hs": null,
+      "dt": null,
+      "eut": null,
+      "tr": null,
+      "tpp": null,
+      "vdm": null,
+      "vm": null,
+      "vmd": 0.11,
+      "vmtl": 0.86,
+      "km": 44.63,
+      "kmkba": 2.84,
+      "kmkks": 51.55,
+      "vint": 0.01,
+      "d": null
+    }
+  ],
+  "toplamSayi": 1,
+  "toplamSayfa": 1
+}

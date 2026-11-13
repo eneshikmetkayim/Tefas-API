@@ -10,8 +10,8 @@
     <packaging>jar</packaging>
 
     <name>TEFAS API Client</name>
-    <description>TEFAS (Türkiye Elektronik Fon Alım Satım Platformu) API Client for Java</description>
-    <url>https://github.com/eneshenderson/tefas-api</url>
+    <description>TEFAS (Türkiye Elektronik Fon Alım Satım Platformu) Pure-HTTP API Client for Java</description>
+    <url>https://github.com/eneshikmetkayim/Tefas-API</url>
 
     <licenses>
         <license>
@@ -24,29 +24,22 @@
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <playwright.version>1.49.0</playwright.version>
-        <gson.version>2.10.1</gson.version>
-        <lombok.version>1.18.30</lombok.version>
+        <gson.version>2.11.0</gson.version>
+        <junit.version>5.11.3</junit.version>
     </properties>
 
     <dependencies>
-        <dependency>
-            <groupId>com.microsoft.playwright</groupId>
-            <artifactId>playwright</artifactId>
-            <version>${playwright.version}</version>
-        </dependency>
-        
         <dependency>
             <groupId>com.google.code.gson</groupId>
             <artifactId>gson</artifactId>
             <version>${gson.version}</version>
         </dependency>
-        
+
         <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <version>${lombok.version}</version>
-            <scope>provided</scope>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 
@@ -55,17 +48,23 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.11.0</version>
+                <version>3.13.0</version>
                 <configuration>
-                    <source>17</source>
-                    <target>17</target>
+                    <source>21</source>
+                    <target>21</target>
                 </configuration>
             </plugin>
-            
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.5.1</version>
+            </plugin>
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
-                <version>3.3.0</version>
+                <version>3.4.2</version>
             </plugin>
         </plugins>
     </build>

@@ -1,0 +1,21 @@
+{
+  "errorCode": null,
+  "errorMessage": null,
+  "resultList": [
+    {
+      "fonKodu": "HAI",
+      "fonUnvan": "AHLATCI PORTFÖY ALTIN FONU",
+      "fonTurAciklama": "Kıymetli Madenler Şemsiye Fonu",
+      "tefasDurum": true,
+      "fonTurKod": 37,
+      "kurucuKod": "LAT",
+      "altbaslik1": "uygulananYonetimUcretiOranYillikYuzde",
+      "uygulananYu1Y": "1,8",
+      "altbaslik2": "ictuzukteYerAlanYonetimUcretiOraniYillikYuzde",
+      "fonIcTuzukYu1G": "2,04",
+      "yillikGetiri": 0,
+      "altbaslik3": "azamitopgidoran",
+      "fonTopGiderKesoran": "2,19"
+    }
+  ]
+}

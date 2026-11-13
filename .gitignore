@@ -82,3 +82,7 @@ Thumbs.db
 # Playwright
 playwright-report/
 test-results/
+
+# Rust
+rust/target/
+**/*.rs.bk

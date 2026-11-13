@@ -1,0 +1,22 @@
+{
+  "errorCode": null,
+  "errorMessage": null,
+  "resultList": [
+    {
+      "fonKodu": "HAI",
+      "fonUnvan": "AHLATCI PORTFÖY ALTIN FONU",
+      "fonTurAciklama": "Altın Fonu",
+      "tefasDurum": true,
+      "kurucuKodu": "LAT",
+      "fonTipi": null,
+      "fonTurkod": "37",
+      "ilkPortfoyDegeri": 10379430.16,
+      "sonPortfoyDegeri": 10536464.41,
+      "portBuyuklukDegisim": 1.51,
+      "ilkPayAdedi": 11182475,
+      "sonPayAdedi": 11281857,
+      "payAdetDegisim": 0.89,
+      "netGetiriOrani": 0.62
+    }
+  ]
+}

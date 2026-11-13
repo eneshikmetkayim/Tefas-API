@@ -1,28 +1,46 @@
 /**
- * TEFAS API Client - JavaScript/TypeScript
- *
- * @example
- * ```typescript
- * import { TefasClient, FundType } from 'tefas-api';
- *
- * const client = new TefasClient();
- * await client.start();
- *
- * const funds = await client.getFunds(FundType.YAT);
- * const fund = await client.getFund('TI1');
- * const history = await client.getPriceHistory('AAK', { days: 30 });
- *
- * await client.close();
- * ```
+ * TEFAS API Client - Pure HTTP (JavaScript/TypeScript)
  */
 
-export { TefasClient } from "./client";
+export { TefasClient, isEmptyResultMessage } from "./client";
 export { FundType } from "./types";
 export type {
+  Announcement,
+  ApiParams,
+  ApiResponse,
   Fund,
-  FundPrice,
   FundAllocation,
+  FundCategory,
+  FundFounder,
+  FundGroup,
+  FundInfo,
+  FundManagementFee,
+  FundNameSearchResult,
+  FundPrice,
+  FundProfile,
+  FundSizeInfo,
+  FundSortBy,
   MarketSummary,
   TefasClientOptions,
 } from "./types";
-export { formatTotalValue, formatDate, getLastBusinessDay } from "./utils";
+export {
+  formatTotalValue,
+  formatDate,
+  getAllocationTotal,
+  getLastBusinessDay,
+  iterDateChunks,
+  parseAllocation,
+  parseAnnouncement,
+  parseFund,
+  parseFundCategory,
+  parseFundFounder,
+  parseFundGroup,
+  parseFundInfo,
+  parseFundManagementFee,
+  parseFundNameSearchResult,
+  parseFundPrice,
+  parseFundProfile,
+  parseFundSizeInfo,
+  parseTimestamp,
+  previousBusinessDay,
+} from "./utils";

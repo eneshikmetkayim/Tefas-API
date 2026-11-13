@@ -1,22 +1,27 @@
 {
   "name": "tefas-api",
   "version": "1.0.0",
-  "description": "TEFAS (Türkiye Elektronik Fon Alım Satım Platformu) API Client",
-  "main": "dist/index.js",
-  "module": "dist/index.mjs",
+  "description": "TEFAS (Türkiye Elektronik Fon Alım Satım Platformu) Pure-HTTP API Client",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
   "type": "module",
-  "types": "dist/index.d.ts",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "require": "./dist/index.js",
-      "import": "./dist/index.mjs",
-      "types": "./dist/index.d.ts"
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
     }
   },
   "scripts": {
-    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "build": "tsup src/index.ts --format cjs,esm --dts --clean",
     "test": "tsx --test test/*.test.ts",
-    "lint": "eslint src/",
+    "lint": "tsc --noEmit",
     "prepublishOnly": "npm run build"
   },
   "keywords": [
@@ -31,9 +36,7 @@
   ],
   "author": "TEFAS API Contributors",
   "license": "MIT",
-  "dependencies": {
-    "playwright": "^1.40.0"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@types/node": "^20.19.27",
     "ts-node": "^10.9.2",
@@ -46,6 +49,6 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/tefas-api"
+    "url": "https://github.com/eneshikmetkayim/Tefas-API"
   }
 }

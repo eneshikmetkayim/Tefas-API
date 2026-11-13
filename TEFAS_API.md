@@ -1,117 +1,150 @@
 # TEFAS API Teknik Dokümantasyonu
 
-Bu dosya 2026-11 itibarıyla gözlenen JSON proxy sözleşmesini belgeler. TEFAS
-resmi, sürümlü bir public API garantisi vermediği için fixture'lar ve canlı
-probe sonuçları ayrı tutulur. Eski `/api/DB/*` uç noktaları taşınmamalıdır.
+Bu belge, Türkiye Elektronik Fon Alım Satım Platformu (TEFAS) üzerinde **tarayıcı otomasyonu olmadan doğrudan HTTP `POST` istekleriyle** doğrulanmış resmi JSON API uç noktalarını, istek/yanıt şemalarını ve bilinen kenar durumlarını açıklar.
 
-## Genel Bilgiler
+---
 
-- **Base URL:** `https://www.tefas.gov.tr/api/funds/`
-- **Format:** JSON (`Content-Type: application/json`)
-- **İstemci:** İstekler `fon-verileri` sayfasının tarayıcı context'inden gönderilir.
+## Temel Bağlantı ve Başlıklar
 
-## Ortak istek sözleşmesi
+- **Base URL:** `https://www.tefas.gov.tr`
+- **Protokol:** `POST` + `Content-Type: application/json` (sayfa HTML'ine yapılan `GET` istekleri WAF/bot korumasına takılır; doğrudan `/api/...` uçlarına yapılan `POST` JSON çağrıları Playwright/çerez gerektirmeden JSON döner).
+- **Önerilen Başlıklar:**
+  ```http
+  Accept: application/json
+  Content-Type: application/json
+  Accept-Language: tr-TR,tr;q=0.9,en;q=0.8
+  User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36
+  Origin: https://www.tefas.gov.tr
+  Referer: https://www.tefas.gov.tr/tr/fon-karsilastirma
+  ```
 
-Fon endpoint'lerinin çoğu `POST` + JSON kullanır. Tarihler endpoint'e göre
-`YYYYMMDD` veya `YYYY-MM-DD` bekleyebilir; `fonGnlBlgSiraliGetir` ve
-`dagilimSiraliGetirT` için `YYYYMMDD` doğrulanmıştır. Sayfalı endpoint'lerde
-`basSira`/`bitSira` kullanılır; uzun tarih aralıkları için 28 günlük chunk'lar
-kullanılması önerilir.
+---
 
-Yanıtlar genellikle `resultList` + `errorCode`/`errorMessage`, bazı yeni portal
-endpoint'leri ise `data` zarfı döndürür.
+## Desteklenen Fon Tipleri (`fonTipi`)
 
-## Fon işlemleri
+| Değer | Açıklama |
+|---|---|
+| `YAT` | Yatırım Fonları |
+| `EMK` | Emeklilik Fonları |
+| `BYF` | Borsa Yatırım Fonları |
+| `GYF` | Gayrimenkul Yatırım Fonları |
+| `GSYF` | Girişim Sermayesi Yatırım Fonları |
 
+---
+
+## Doğrulanmış API Uç Noktaları
+
+### 1. Günlük Fon Verileri ve Fiyat Geçmişi
 `POST /api/funds/fonGnlBlgSiraliGetir`
 
+İstek gövdesi:
 ```json
 {
   "fonTipi": "YAT",
   "fonKodu": null,
-  "basTarih": "20261109",
-  "bitTarih": "20261109",
+  "aramaMetni": null,
+  "fonTurKod": null,
+  "fonGrubu": null,
+  "sfonTurKod": null,
+  "fonTurAciklama": null,
+  "kurucuKod": null,
+  "basTarih": "20261112",
+  "bitTarih": "20261112",
+  "basSira": 1,
+  "bitSira": 100000,
+  "dil": "TR",
+  "sFonTurKod": "",
+  "fonKod": "",
+  "fonGrup": "",
+  "fonUnvanTip": ""
+}
+```
+- **Tarih formatı:** İstek parametreleri `YYYYMMDD`, API yanıtındaki `tarih` alanı **`YYYY-MM-DD`** (eski kayıtlarda `DD.MM.YYYY` veya epoch ms gelebilir).
+- **1 ay sınırı:** `bitTarih - basTarih` farkı 1 ayı aşarsa API `"Geçersiz veri: Tarih aralığı 1 ayı aşamaz"` hatası döner. Tüm istemciler uzun aralıkları otomatik **28 günlük bloklara** böler.
+- **`EMK` pay sayısı:** Emeklilik fonlarında `tedPaySayisi` ondalıklı (`49217355066.612`) dönebilir.
+- **`BYF` alanı:** Borsa Yatırım Fonları `borsaBultenFiyat` alanı da içerebilir.
+
+### 2. Varlık Dağılımı
+`POST /api/funds/dagilimSiraliGetirT`
+
+- Filtre için `fonKod` (ve `fonKodu`) kullanılır.
+- Yanıt anahtarları küçük harflidir ve kullanılmayan varlık sınıfları `null` döner:
+  `hs`, `dt`, `ost`, `eut`, `tr`, `tpp`, `r`, `vdm`, `vm`, `vmtl`, `vmd`, `vmau`, `byf`, `yyf`, `yhs`, `yba`, `km`, `kmbyf`, `kmkba`, `kmkks`, `vint`, `d`.
+
+### 3. Tekil Fon Özet ve Kategori Sıralaması
+`POST /api/funds/fonBilgiGetir`
+
+```json
+{ "fonKodu": "AAL", "dil": "TR" }
+```
+Alanlar: `fonKodu`, `fonUnvan`, `sonFiyat`, `gunlukGetiri`, `payAdet`, `portBuyukluk`, `fonKategori`, `kategoriDerece`, `kategoriFonSay`, `yatirimciSayi`, `pazarPayi`.
+
+### 4. Fon Profil, ISIN, İşlem Saatleri ve Komisyon Bilgileri
+`POST /api/funds/fonProfilBilgiGetir`
+
+```json
+{ "fonKodu": "AAL", "dil": "TR" }
+```
+Alanlar: `fonKodu`, `fonUnvan`, `isinKodu`, `basIsSaat`, `sonIsSaat`, `minAlis`, `minSatis`, `maxAlis`, `maxSatis`, `kapLink`, `tefasDurum`, `girisKomisyonu`, `cikisKomisyonu`, `fonSatisValor`, `fonGeriAlisValor`, `faizIcerigi`, `riskDegeri`.
+
+### 5. Periyod Bazlı Fiyat Geçmişi (5 Yıla Kadar Tek İstek)
+`POST /api/funds/fonFiyatBilgiGetir`
+
+```json
+{ "fonKodu": "AAL", "dil": "TR", "periyod": "12" }
+```
+- Desteklenen `periyod` değerleri (ay cinsinden): `"1"`, `"3"`, `"6"`, `"12"`, `"36"`, `"60"`.
+- Alanlar: `fonKodu`, `fonUnvan`, `kategoriDerece`, `kategoriFonSay`, `tarih`, `fiyat`.
+
+### 6. Tarih Aralığında Büyüklük ve Pay Değişimi
+`POST /api/funds/fonBuyuklukBazliBilgiGetir`
+
+```json
+{
+  "fonTipi": "YAT",
+  "sFonTurKod": "",
+  "fonKod": "",
+  "fonGrup": "",
+  "fonUnvanTip": "",
+  "basTarih": "20261105",
+  "bitTarih": "20261112",
   "basSira": 1,
   "bitSira": 100000,
   "dil": "TR"
 }
 ```
+Alanlar: `fonKodu`, `fonUnvan`, `fonTurAciklama`, `tefasDurum`, `kurucuKodu`, `fonTurkod`, `ilkPortfoyDegeri`, `sonPortfoyDegeri`, `portBuyuklukDegisim`, `ilkPayAdedi`, `sonPayAdedi`, `payAdetDegisim`, `netGetiriOrani`.
 
-Diğer filtre alanları (`aramaMetni`, `fonTurKod`, `fonGrubu`, `sfonTurKod`,
-`fonTurAciklama`, `kurucuKod`) null veya boş değerlerle gönderilebilir.
+### 7. Yönetim Ücreti ve Gider Kesintisi Karşılaştırması
+`POST /api/funds/fonYonetimBazliBilgiGetir`
 
-Yanıt `errorCode`, `errorMessage`, `resultList`, `toplamSayi` ve
-`toplamSayfa` alanlarını içerir. Fon satırları `fonKodu`, `fonUnvan`, `tarih`,
-`fiyat`, `tedPaySayisi`, `kisiSayisi` ve `portfoyBuyukluk` alanlarını kullanır.
-Tarihler `yyyyMMdd` biçimindedir.
+Alanlar: `fonKodu`, `fonUnvan`, `fonTurAciklama`, `tefasDurum`, `fonTurKod`, `kurucuKod`, `uygulananYu1Y` (ör. `"1,8"`), `fonIcTuzukYu1G` (ör. `"2,04"`), `yillikGetiri`, `fonTopGiderKesoran` (ör. `"2,19"`).
 
-## Varlık dağılımı
+### 8. Referans / Tanım Uçları ve Duyurular
 
-`POST /api/funds/dagilimSiraliGetirT`
-
-İstek gövdesi fon bilgileriyle aynıdır. Dağılım satırlarında `fonKodu`,
-`fonUnvan`, `tarih` ve kısa camelCase alanları (`hs`, `dt`, `eut`, `tr`, `vm`,
-`byf`, `yhs`, `yba`, `d` ve diğer portföy sınıfları) bulunur.
-
-| Endpoint | Amaç | Not |
+| Uç Nokta | İstek | Dönüş Alanları |
 |---|---|---|
-| `/api/funds/fonFiyatBilgiGetir` | Tek fon fiyat geçmişi | `fonKodu`, `dil`, `periyod` |
-| `/api/funds/fonBilgiGetir` | Anlık fiyat ve özet metrikler | `data`/`resultList` varyasyonu görülebilir |
-| `/api/funds/fonProfilDtyGetir` | Kategori sırası ve ortalama getiriler | Fon tipi filtreleri |
-| `/api/funds/fonGetiriBazliBilgiGetir` | Dönem getirileri | 1/3/6 ay, YTD, 1/3/5 yıl |
-| `/api/funds/fonBuyuklukBazliBilgiGetir` | Büyüklük/pay raporu | Fon tipi filtreleri |
-| `/api/funds/fonYonetimBazliBilgiGetir` | Yönetim ücreti/gider kesintisi | Fon tipi filtreleri |
-| `/api/funds/fonDetayGetir` | Fon tür detayları | Metadata |
-| `/api/funds/fonKurucuGetir` | Kurucu listesi | Metadata |
-| `/api/funds/fonTipiGetir` | Fon kodundan tip | Metadata |
-| `/api/funds/fonUnvanGetir` | Fon unvanları | Sözlük |
-| `/api/funds/fonUnvanAra` | Kod/unvan araması | Arama |
-| `/api/funds/fonTurDnmGetiriGetir` | Fon türü dönem getirileri | İstatistik |
-| `/api/funds/fonGrupGetir` | Fon grup sözlüğü | Sözlük |
-| `/api/funds/fonTurGetir` | Fon türü sözlüğü | Sözlük |
-| `/api/funds/fonProfilBilgiGetir` | Detaylı fon metadata'sı | Fixture ile doğrulanmalı |
-| `/api/fund-returns/export` | Getiri/ücret/büyüklük export'u | Canlı doğrulama bekliyor |
+| `POST /api/funds/fonKurucuGetir` | `{"fonTipi":"YAT","dil":"TR"}` | `kurucuKodu`, `kurucuUnvan`, `fonTipi` |
+| `POST /api/funds/fonTurGetir` | `{"fonTipi":"YAT","dil":"TR"}` | `sfonTuru`, `sfonTurAciklama` |
+| `POST /api/funds/fonGrupGetir` | `{"fonTipi":"YAT","dil":"TR"}` | `fonGrubu`, `fongrupaciklama` |
+| `POST /api/funds/fonUnvanAra` | `{"aramaMetni":"PARA","fonTipi":"YAT","dil":"TR"}` | `fonKodu`, `fonUnvan` |
+| `POST /api/funds/fonTipiGetir` | `{"fonKodu":"AAL"}` | `fonTipi` (`"F"`, `"E"`, vb.) |
+| `POST /api/announcements/fonTefasDuyuruGetir` | `{"dil":"TR"}` | `duyuruBaslik`, `siraNo`, `duyuruDetay` |
 
-## Duyuru ve portal
+---
 
-| Endpoint | Amaç |
-|---|---|
-| `/api/announcements/fonTefasDuyuruGetir` | TEFAS duyuruları |
-| `/api/bannerSlider/banner/getBanners` | Banner içerikleri |
-| `/api/getLogo/logo/getLogo` | Logo verisi; bazı kayıtlarda yetkilendirme görülebilir |
-| `/api/portal/popup/isShowedPopup` | Popup gösterim durumu |
+## Bilinen Kenar Durumları
 
-## TEFAS ve BEFAS istatistikleri
-
-TEFAS: `/api/statistics/tefas/getFplDovizList/v2`,
-`getFplFonList`, `getFplHaftaList`, `getFplFonBazliIslemHacmi`,
-`getFplUyeBazliIslemHacmi`, `getFplToplamIslemHacmi`,
-`getFplMkkStokBakiye`, `getFplFonTuruBazindaFonSayisi`,
-`getFplIslemYapanKurumAdet`.
-
-BEFAS: `/api/statistics/befas/getBefasFonTurBazliIslemHacmi`,
-`getBefasFonTuruBazindaFonSayisi`, `getBefasToplamIslemHacmi`,
-`getBefasUyeBazliIslemHacmi`.
-
-Bu istatistik endpoint'leri için request şemaları bağımsız fixture'larla
-eklenmeden istemcilere public method olarak açılmamalıdır.
-
-## Hata işleme
-
-İstemciler HTTP hatalarını, geçersiz JSON'u ve TEFAS'ın `errorCode` /
-`errorMessage` yanıtlarını hata olarak bildirir. Hafta sonu veya tatil
-yanıtlarında `resultList` boş olabilir; bu durum boş sonuç olarak döndürülür.
-
-## Geriye uyumluluk
-
-Model ayrıştırıcıları yeni camelCase alanları kullanır; eski büyük harfli
-alanları da kabul eder. Böylece kayıtlı örnek yanıtlarla çalışan uygulamalar
-korunur.
-
-## Emekli endpoint'ler
-
-`/api/DB/BindHistoryInfo`, `/api/DB/BindHistoryAllocation`,
-`/api/DB/GetAllFundAnalyzeData`, `/api/DB/BindComparisonFundReturns`,
-`/api/DB/BindComparisonFundSizes` ve `/api/DB/BindComparisonManagementFees`
-artık kullanılmamalıdır. Canlı gözlemde ilk iki endpoint `404 ERR-006`
-(`Method not found or disabled!`) döndürdü.
+1. **Boş Sonuç / Yayınlanmamış İş Günü:** Hafta sonu, resmi tatil veya verinin henüz yayınlanmadığı sabah saatlerinde `HTTP 200` ile şu gövde döner:
+   ```json
+   {
+     "errorCode": null,
+     "errorMessage": "Index 0 out of bounds for length 0",
+     "resultList": null,
+     "toplamSayi": null,
+     "toplamSayfa": null
+   }
+   ```
+   İstemciler bu durumu hata fırlatmak yerine boş liste olarak ele alır ve `target_date` belirtilmemişse en fazla 7 iş günü geriye otomatik düşer.
+2. **Hız Sınırı (`HTTP 429`):** Ardışık çok hızlı çağrılarda `ERR-224` (`Throttling limit`) döner; tüm istemciler üstel geri çekilme (exponential backoff: 1.5s, 3s, 6s) uygular.
+3. **WAF HTML Engeli:** HTML yanıtı (`Erişim Engellendi` veya `<...`) geldiğinde JSON ayrıştırma yerine açıklayıcı WAF hatası verilir.

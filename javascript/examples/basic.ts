@@ -1,44 +1,43 @@
 /**
- * TEFAS API - TypeScript Örnek
+ * TEFAS API JavaScript/TypeScript Temel Kullanım Örneği (Pure HTTP)
  */
 
-import { TefasClient, FundType, formatTotalValue } from "../src/index";
+import { TefasClient, FundType, formatTotalValue } from "../src";
 
 async function main() {
-  console.log("TEFAS API - TypeScript Client");
-  console.log("=".repeat(50));
-
   const client = new TefasClient();
+  await client.start();
 
   try {
-    await client.start();
-
-    // Piyasa özeti
-    console.log("\n📊 Piyasa Özeti");
+    console.log("=== PİYASA ÖZETİ ===");
     const summary = await client.getMarketSummary(FundType.YAT);
-    console.log(`  Fon Sayısı: ${summary.totalFunds.toLocaleString()}`);
-    console.log(`  Toplam Değer: ${(summary.totalValue / 1e12).toFixed(2)} Trilyon TL`);
-    console.log(`  Yatırımcı: ${summary.totalInvestors.toLocaleString()}`);
+    console.log(
+      `${summary.totalFunds} fon | ${formatTotalValue(summary.totalValue)} | ${summary.totalInvestors.toLocaleString("tr-TR")} yatırımcı`
+    );
 
-    // En büyük 5 fon
-    console.log("\n🏆 En Büyük 5 Fon");
-    const top = await client.getTopFunds({ limit: 5 });
-    top.forEach((fund, i) => {
-      console.log(`  ${i + 1}. ${fund.code}: ${formatTotalValue(fund.totalValue)}`);
-    });
+    console.log("\n=== EN BÜYÜK 5 FON ===");
+    for (const f of await client.getTopFunds({ limit: 5 })) {
+      console.log(`${f.code}: ${f.name.slice(0, 40)} - ${formatTotalValue(f.totalValue)}`);
+    }
 
-    // Fiyat geçmişi
-    console.log("\n📈 AAK Fiyat Geçmişi");
-    const history = await client.getPriceHistory("AAK", { days: 5 });
-    history.forEach((price) => {
-      console.log(`  ${price.date.toISOString().split("T")[0]}: ${price.price.toFixed(6)}`);
-    });
+    console.log("\n=== FON DETAYI (AAL) ===");
+    const info = await client.getFundInfo("AAL");
+    const profile = await client.getFundProfile("AAL");
+    if (info) {
+      console.log(`${info.code}: ${info.lastPrice.toFixed(6)} TL | ${info.category} (${info.categoryRank}/${info.categoryFundCount})`);
+    }
+    if (profile) {
+      console.log(`ISIN: ${profile.isinCode} | Risk: ${profile.riskLevel}`);
+    }
 
+    console.log("\n=== DUYURULAR ===");
+    const announcements = await client.getAnnouncements();
+    for (const ann of announcements.slice(0, 3)) {
+      console.log(`[${ann.sequenceNo}] ${ann.title}`);
+    }
   } finally {
     await client.close();
   }
-
-  console.log("\n✅ Tamamlandı!");
 }
 
-main();
+main().catch(console.error);

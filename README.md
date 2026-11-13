@@ -1,250 +1,130 @@
 # TEFAS API
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)](https://python.org)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://typescriptlang.org)
-[![Go](https://img.shields.io/badge/Go-1.21+-00ADD8.svg)](https://golang.org)
-[![.NET](https://img.shields.io/badge/.NET-8.0+-512BD4.svg)](https://dotnet.microsoft.com)
-[![Java](https://img.shields.io/badge/Java-17+-ED8B00.svg)](https://java.com)
-[![Rust](https://img.shields.io/badge/Rust-1.80+-DEA584.svg)](https://www.rust-lang.org)
+**Türkiye Elektronik Fon Alım Satım Platformu (TEFAS)** için **6 programlama dilinde** hazırlanmış, **tarayıcı otomasyonu (Playwright/Chromium) gerektirmeyen saf HTTP (Pure-HTTP)** API istemci kütüphaneleri.
 
-TEFAS (Türkiye Elektronik Fon Alım Satım Platformu) için çoklu dil desteğine sahip API client kütüphanesi.
+Doğrudan TEFAS'ın resmi `/api/funds/*` ve `/api/announcements/*` JSON uç noktalarına `POST` istekleri gönderir; hafif, hızlı ve CI/sunucu ortamlarında ek tarayıcı kurulumu gerektirmez.
 
-## 🎯 Ne İşe Yarar?
+---
 
-Bu kütüphane ile Türkiye'deki tüm yatırım fonları ve emeklilik fonlarının verilerine programatik olarak erişebilirsiniz:
+## Özellikler
 
-- **Fon Bilgileri**: Fiyat, toplam değer, yatırımcı sayısı
-- **Fiyat Geçmişi**: Geçmiş tarihli fiyat verileri
-- **Varlık Dağılımı**: Hisse, tahvil, repo, mevduat oranları
-- **Piyasa Özeti**: Toplam piyasa büyüklüğü ve istatistikler
+- **Pure HTTP / Zero Browser:** Python, JavaScript/TypeScript, Go ve .NET'te sıfır harici çalışma zamanı bağımlılığı (ve Java'da yalnızca Gson, Rust'ta `reqwest`). Playwright/Chromium kurulumu gerekmez.
+- **5 Fon Piyasası:** `YAT` (Yatırım Fonları), `EMK` (Emeklilik Fonları), `BYF` (Borsa Yatırım Fonları), `GYF` (Gayrimenkul), `GSYF` (Girişim Sermayesi).
+- **7 Ana Metod (Tüm Dillerde Eşit):**
+  1. `getFunds` — Günlük tüm fon verileri (yayınlanmamış günlerde otomatik son iş günü geri düşümü).
+  2. `getFund` — Kod ile tekil fon detayı (olmayan kod vs. yayınlanmamış gün ayrımı).
+  3. `getPriceHistory` — Uzun tarih aralıklarını TEFAS'ın 1 aylık sınırına göre **otomatik 28 günlük parçalara bölen** fiyat geçmişi.
+  4. `getAllocation` — Tüm varlık sınıfları (hisse, devlet/özel tahvil, eurobond, repo, mevduat türleri, kıymetli maden/altın, VİOP teminatı, yabancı kıymetler).
+  5. `getTopFunds` — Büyüklük, yatırımcı sayısı, fiyat veya pay sayısına göre sıralama.
+  6. `getMarketSummary` — Piyasa özeti (toplam fon, toplam portföy büyüklüğü, toplam yatırımcı ve ilk 10'lar).
+  7. `searchFunds` — Kod veya unvanda büyük/küçük harf duyarsız arama.
+- **Araştırılmış Ek Endpointler (Tüm Dillerde):**
+  - `getFundCodes` — Piyasadaki tüm fon kodları listesi
+  - `getFundInfo` (`fonBilgiGetir`) — Günlük getiri, pazar payı, kategori adı ve kategori içi sıralama (`kategoriDerece / kategoriFonSay`)
+  - `getFundProfile` (`fonProfilBilgiGetir`) — ISIN kodu, KAP bağlantısı, işlem saatleri, alt/üst alım-satım adetleri, valör ve risk değeri
+  - `getPeriodPriceHistory` (`fonFiyatBilgiGetir`) — Tek istekte `"1"`, `"3"`, `"6"`, `"12"`, `"36"`, `"60"` aylık (5 yıla kadar) fiyat serisi
+  - `getFundSizes` (`fonBuyuklukBazliBilgiGetir`) — Tarih aralığında büyüklük ve pay sayısı değişimi (%)
+  - `getManagementFees` (`fonYonetimBazliBilgiGetir`) — Uygulanan / içtüzük yönetim ücreti ve toplam gider kesintisi üst sınırı
+  - `getFundFounders` (`fonKurucuGetir`) — Kurucu/portföy yönetim şirketleri listesi
+  - `getFundCategories` (`fonTurGetir`) — Şemsiye fon türleri listesi
+  - `getFundGroups` (`fonGrupGetir`) — Fon grupları listesi
+  - `searchFundNames` (`fonUnvanAra`) — Sunucu tarafında hızlı ünvan araması
+  - `getFundTypeCode` (`fonTipiGetir`) — İç fon tipi kodu (`"F"`, `"E"`, vb.)
+  - `getAnnouncements` (`fonTefasDuyuruGetir`) — TEFAS resmi duyuruları
+- **Sağlam Hata Yönetimi:** `HTTP 429` rate limit için otomatik üstel bekleme (exponential backoff), WAF HTML tespiti ve `Index 0 out of bounds` boş sonuç normalizasyonu.
 
-## 📊 Güncel Veriler
+---
 
-| Metrik | Yatırım Fonları (YAT) | Emeklilik Fonları (EMK) |
-|--------|----------------------|------------------------|
-| Fon Sayısı | 1,965 | 390 |
-| Toplam Portföy | 7.40 Trilyon ₺ | 2.05 Trilyon ₺ |
-| Yatırımcı Sayısı | 10.3 Milyon | 54.5 Milyon |
+## Hızlı Başlangıç
 
-## 🚀 Hızlı Başlangıç
-
-### Python
-
-```bash
-cd python
-pip install -e .
-playwright install chromium
-```
-
+### Python (`python/`)
 ```python
+import asyncio
 from tefas import TefasClient, FundType
 
-async with TefasClient(headless=True) as client:
-    # Tüm fonları getir
-    funds = await client.get_funds()
-    
-    # En büyük 10 fon
-    top_funds = await client.get_top_funds(limit=10)
-    
-    # Belirli bir fon
-    fund = await client.get_fund("GRO")
-    print(f"{fund.code}: {fund.total_value_billion:.2f} Milyar ₺")
+async def main():
+    async with TefasClient() as client:
+        summary = await client.get_market_summary(FundType.YAT)
+        print(summary)
+        info = await client.get_fund_info("AAL")
+        print(info.category, f"{info.category_rank}/{info.category_fund_count}")
+
+asyncio.run(main())
 ```
+> Senkron kullanım için `client.sync_get_funds()`, `client.sync_get_fund_info(...)` vb. `sync_*` metotları mevcuttur.
 
-### JavaScript / TypeScript
-
-```bash
-cd javascript
-npm install
-npx playwright install chromium
-```
-
+### JavaScript / TypeScript (`javascript/`)
 ```typescript
-import { TefasClient } from 'tefas-api';
+import { TefasClient, FundType } from "tefas-api";
 
-const client = new TefasClient({ headless: true });
-await client.start();
-
-const funds = await client.getFunds();
-const topFunds = await client.getTopFunds({ limit: 10 });
-const summary = await client.getMarketSummary();
-
-console.log(`Toplam: ${summary.totalFunds} fon, ${summary.totalValueTrillion.toFixed(2)} Trilyon ₺`);
-
-await client.close();
+const client = new TefasClient();
+const funds = await client.getFunds(FundType.YAT);
+const info = await client.getFundInfo("AAL");
+const history = await client.getPeriodPriceHistory("AAL", "12");
 ```
 
-### Go
-
-```bash
-cd go
-go mod download
-go run github.com/playwright-community/playwright-go/cmd/playwright install chromium
-```
-
+### Go (`go/`)
 ```go
-package main
+client := tefas.NewClient()
+defer client.Close()
 
-import (
-    "fmt"
-    "github.com/eneshenderson/tefas-api/go/tefas"
-)
-
-func main() {
-    client := tefas.NewClient(tefas.ClientOptions{Headless: true})
-    client.Start()
-    defer client.Close()
-
-    funds, _ := client.GetFunds(tefas.FundTypeYAT)
-    summary, _ := client.GetMarketSummary(tefas.FundTypeYAT)
-    
-    fmt.Printf("Toplam: %d fon, %.2f Trilyon ₺\n", 
-        summary.TotalFunds, summary.TotalValueTrillion())
-}
+summary, _ := client.GetMarketSummary(tefas.FundTypeYAT, nil)
+info, _ := client.GetFundInfo("AAL")
 ```
 
-### .NET (C#)
-
-```bash
-cd dotnet
-dotnet restore
-dotnet build
-# Playwright kurulumu
-pwsh bin/Debug/net8.0/playwright.ps1 install chromium
-```
-
+### C# / .NET (`dotnet/`)
 ```csharp
-using Tefas.Api;
-
-await using var client = new TefasClient(new TefasClientOptions { Headless = true });
-await client.StartAsync();
-
-var funds = await client.GetFundsAsync();
-var topFunds = await client.GetTopFundsAsync(limit: 10);
-var summary = await client.GetMarketSummaryAsync();
-
-Console.WriteLine($"Toplam: {summary.TotalFunds} fon, {summary.TotalValueTrillion:F2} Trilyon ₺");
+await using var client = new TefasClient();
+var summary = await client.GetMarketSummaryAsync(FundType.YAT);
+var profile = await client.GetFundProfileAsync("AAL");
 ```
 
-### Java
-
-```bash
-cd java
-# Maven
-mvn compile
-# veya Gradle
-gradle build
-```
-
+### Java (`java/`)
 ```java
-import com.tefas.TefasClient;
-import com.tefas.TefasClientOptions;
-
-TefasClientOptions options = new TefasClientOptions();
-options.setHeadless(true);
-
-try (TefasClient client = new TefasClient(options)) {
-    var funds = client.getFunds();
-    var topFunds = client.getTopFunds(10);
-    var summary = client.getMarketSummary();
-    
-    System.out.printf("Toplam: %d fon, %.2f Trilyon ₺%n", 
-        summary.getTotalFunds(), summary.getTotalValueTrillion());
+try (TefasClient client = new TefasClient()) {
+    MarketSummary summary = client.getMarketSummary(FundType.YAT);
+    FundInfo info = client.getFundInfo("AAL");
 }
 ```
 
-### Rust
-
-```bash
-cd rust
-cargo test
-```
-
+### Rust (`rust/`)
 ```rust
-use tefas_api::{FundType, TefasClient};
-
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let client = TefasClient::new()?;
-    let funds = client.get_funds(FundType::Yat, "20261110").await?;
-    println!("{} fon", funds.len());
-    Ok(())
-}
+let client = TefasClient::new()?;
+let summary = client.get_market_summary(FundType::Yat, None).await?;
+let profile = client.get_fund_profile("AAL", "TR").await?;
 ```
 
-## 📚 API Metodları
+---
 
-Tüm dillerde aynı metodlar mevcuttur:
-
-| Metod | Açıklama |
-|-------|----------|
-| `getFunds()` | Tüm fonları listeler |
-| `getFund(code)` | Belirli bir fonun detaylarını getirir |
-| `getPriceHistory(code, days)` | Fon fiyat geçmişini getirir |
-| `getAllocation(code)` | Fon varlık dağılımını getirir |
-| `getTopFunds(limit)` | En büyük fonları sıralar |
-| `getMarketSummary()` | Piyasa özeti ve istatistikleri getirir |
-| `searchFunds(query)` | Fon adı veya koduna göre arama yapar |
-
-Güncel JSON endpoint envanteri ve request/response ayrıntıları için
-[TEFAS_API.md](TEFAS_API.md) dosyasına bakın. Güncel sözleşme fixture'ları
-`fixtures/` altında tutulur; canlı ağ testi varsayılan test süitinin parçası
-değildir.
-
-## 🏗️ Proje Yapısı
+## Proje Yapısı
 
 ```
-tefas-api/
-├── python/          # Python paketi
-├── javascript/      # TypeScript/JavaScript paketi  
-├── go/              # Go modülü
-├── dotnet/          # .NET kütüphanesi
-├── java/            # Java kütüphanesi (Maven + Gradle)
-├── rust/            # Rust async JSON istemcisi
-├── fixtures/        # Güncel API response fixture'ları
-├── LICENSE          # MIT Lisansı
-└── README.md
+Tefas-API/
+├── python/       # Pure stdlib (urllib + asyncio)
+├── javascript/   # Native fetch (Node >= 18), ESM + CJS
+├── go/           # Pure net/http (zero deps)
+├── dotnet/       # Pure System.Net.Http (net8.0, xUnit tests)
+├── java/         # Pure java.net.http.HttpClient (JDK 21, Gson, JUnit 5)
+├── rust/         # reqwest + serde + tokio
+├── fixtures/     # Gerçek TEFAS JSON sözleşme test fikstürleri
+└── TEFAS_API.md  # Ayrıntılı uç nokta ve şema referansı
 ```
 
-## ⚙️ Yapılandırma
+---
 
-| Parametre | Varsayılan | Açıklama |
-|-----------|------------|----------|
-| `headless` | `false` | Tarayıcı görünür/gizli modu |
-| `timeout` | `60000` | İstek zaman aşımı (ms) |
+## Testleri Çalıştırma
 
-## 🔧 Teknik Detaylar
+| Dil | Komut |
+|---|---|
+| **Python** | `python -m unittest discover -s python/tests -v` |
+| **JavaScript** | `cd javascript && npm ci && npm run lint && npm run build && npm test` |
+| **Go** | `cd go && go test -v ./... && go build ./...` |
+| **.NET** | `cd dotnet && dotnet test` |
+| **Java** | `cd java && mvn -B test` (veya `./gradlew test`) |
+| **Rust** | `cd rust && cargo fmt --check && cargo test` |
 
-- TEFAS web sitesi WAF (Web Application Firewall) koruması kullanır
-- Bu nedenle Playwright ile tarayıcı otomasyonu gereklidir
-- `headless: false` varsayılan olarak kullanılır (WAF bypass için gerekli)
-- Sunucu ortamlarında `headless: true` denenebilir ancak WAF engelleyebilir
+---
 
-## 📝 Fon Tipleri
+## Uyarı & Lisans
 
-| Kod | Açıklama |
-|-----|----------|
-| `YAT` | Yatırım Fonları |
-| `EMK` | Emeklilik Fonları |
-
-## 🤝 Katkıda Bulunma
-
-1. Fork edin
-2. Feature branch oluşturun (`git checkout -b feature/amazing-feature`)
-3. Commit edin (`git commit -m 'Add amazing feature'`)
-4. Push edin (`git push origin feature/amazing-feature`)
-5. Pull Request açın
-
-## 📄 Lisans
-
-Bu proje MIT lisansı altında lisanslanmıştır. Detaylar için [LICENSE](LICENSE) dosyasına bakın.
-
-## 👤 Geliştirici
-
-**Enes Henderson**
-- GitHub: [@eneshenderson](https://github.com/eneshenderson)
-
-## ⚠️ Sorumluluk Reddi
-
-Bu kütüphane resmi TEFAS API'si değildir. Yatırım kararlarınızda bu verileri kullanmadan önce resmi kaynaklardan doğrulama yapın.
+Bu kütüphane kamuya açık TEFAS web API uç noktalarını kullanır; hız sınırlarına (`HTTP 429`) saygı gösterin. MIT lisansı altındadır ([LICENSE](LICENSE)).

@@ -1,1 +1,1 @@
-playwright>=1.40.0
+# Pure Python standard library client (Python 3.10+); zero runtime dependencies.

@@ -4,19 +4,22 @@
   "resultList": [
     {
       "fonKodu": "AAL",
-      "fonUnvan": "AK PORTFÖY ALTERNATİF KAZANÇ FONU",
-      "tarih": "20261110",
+      "fonUnvan": "ATA PORTFÖY PARA PİYASASI (TL) FONU",
+      "tarih": "2026-11-10",
       "hs": 42.5,
       "dt": 10.0,
+      "ost": 2.0,
       "eut": 5.0,
       "tr": 2.5,
+      "tpp": 1.5,
       "vdm": 20.0,
       "vm": 10.0,
       "vmtl": 0.0,
       "vmd": 0.0,
-      "byf": 5.0,
-      "yhs": 3.0,
+      "byf": 3.5,
+      "yhs": 1.0,
       "yba": 1.0,
+      "km": null,
       "d": 1.0
     }
   ],

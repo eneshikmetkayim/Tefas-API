@@ -2,41 +2,57 @@
 TEFAS API Client
 ================
 
-Türkiye Elektronik Fon Alım Satım Platformu için Python API client.
-
-Kullanım:
-    from tefas import TefasClient
-    
-    async with TefasClient() as client:
-        # Tüm fonları al
-        funds = await client.get_funds()
-        
-        # Fon detayı
-        fund = await client.get_fund("TI1")
-        
-        # Fiyat geçmişi
-        history = await client.get_price_history("AAK", days=30)
-
-Senkron kullanım:
-    from tefas import TefasClient
-    
-    client = TefasClient()
-    funds = client.sync_get_funds()
+Türkiye Elektronik Fon Alım Satım Platformu için pure-HTTP Python API client.
 """
 
 from .client import TefasClient
-from .models import Fund, FundPrice, FundAllocation, FundType
-from .exceptions import TefasError, TefasConnectionError, TefasDataError
+from .models import (
+    Announcement,
+    Fund,
+    FundAllocation,
+    FundCategory,
+    FundFounder,
+    FundGroup,
+    FundInfo,
+    FundManagementFee,
+    FundNameSearchResult,
+    FundPrice,
+    FundProfile,
+    FundSizeInfo,
+    FundType,
+    MarketSummary,
+)
+from .exceptions import (
+    TefasConnectionError,
+    TefasDataError,
+    TefasError,
+    TefasNotFoundError,
+    TefasTimeoutError,
+    TefasWAFError,
+)
 
 __version__ = "1.0.0"
 __author__ = "TEFAS API Contributors"
 __all__ = [
     "TefasClient",
     "Fund",
-    "FundPrice", 
+    "FundPrice",
     "FundAllocation",
     "FundType",
+    "MarketSummary",
+    "FundInfo",
+    "FundProfile",
+    "FundSizeInfo",
+    "FundManagementFee",
+    "FundFounder",
+    "FundCategory",
+    "FundGroup",
+    "FundNameSearchResult",
+    "Announcement",
     "TefasError",
     "TefasConnectionError",
     "TefasDataError",
+    "TefasWAFError",
+    "TefasNotFoundError",
+    "TefasTimeoutError",
 ]

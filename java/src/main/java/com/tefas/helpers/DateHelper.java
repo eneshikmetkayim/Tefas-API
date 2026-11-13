@@ -1,53 +1,96 @@
 package com.tefas.helpers;
 
 import java.time.DayOfWeek;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * Tarih yardımcı sınıfı
+ * Tarih yardımcı metotları
  */
 public class DateHelper {
-    private static final DateTimeFormatter API_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd");
-    private static final DateTimeFormatter PARSE_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+    private static final DateTimeFormatter API_DATE_FMT = DateTimeFormatter.ofPattern("yyyyMMdd");
+    private static final DateTimeFormatter TR_DATE_FMT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+    private static final DateTimeFormatter ISO_DATE_FMT = DateTimeFormatter.ISO_LOCAL_DATE;
 
-    private DateHelper() {}
+    public record DateRange(LocalDate start, LocalDate end) {}
 
-    /**
-     * Son iş gününü döndürür
-     */
     public static LocalDate getLastBusinessDay() {
-        LocalDate date = LocalDate.now();
-        DayOfWeek day = date.getDayOfWeek();
-        
-        if (day == DayOfWeek.SATURDAY) {
-            return date.minusDays(1);
-        } else if (day == DayOfWeek.SUNDAY) {
-            return date.minusDays(2);
-        }
-        return date;
+        return getLastBusinessDay(LocalDate.now(ZoneOffset.UTC));
     }
 
-    /**
-     * Tarihi API formatına çevirir (dd.MM.yyyy)
-     */
+    public static LocalDate getLastBusinessDay(LocalDate reference) {
+        LocalDate d = reference;
+        if (d.getDayOfWeek() == DayOfWeek.SATURDAY) {
+            return d.minusDays(1);
+        }
+        if (d.getDayOfWeek() == DayOfWeek.SUNDAY) {
+            return d.minusDays(2);
+        }
+        return d;
+    }
+
+    public static LocalDate previousBusinessDay(LocalDate date) {
+        LocalDate current = date.minusDays(1);
+        while (current.getDayOfWeek() == DayOfWeek.SATURDAY || current.getDayOfWeek() == DayOfWeek.SUNDAY) {
+            current = current.minusDays(1);
+        }
+        return current;
+    }
+
     public static String formatDate(LocalDate date) {
-        return date.format(API_FORMAT);
+        return date.format(API_DATE_FMT);
     }
 
-    /**
-     * API tarih stringini LocalDate'e çevirir
-     */
-    public static LocalDate parseDate(String dateStr) {
-        if (dateStr == null || dateStr.isEmpty()) {
-            return LocalDate.now();
+    public static List<DateRange> iterDateChunks(LocalDate startDate, LocalDate endDate, int maxDays) {
+        List<DateRange> chunks = new ArrayList<>();
+        if (startDate.isAfter(endDate)) {
+            return chunks;
         }
-        for (DateTimeFormatter formatter : new DateTimeFormatter[] {
-                DateTimeFormatter.ofPattern("yyyyMMdd"),
-                DateTimeFormatter.ISO_LOCAL_DATE, PARSE_FORMAT }) {
-            try { return LocalDate.parse(dateStr.substring(0, Math.min(dateStr.length(), 10)), formatter); }
-            catch (Exception ignored) {}
+        int step = maxDays > 0 ? maxDays : 28;
+        LocalDate cursorEnd = endDate;
+        while (!cursorEnd.isBefore(startDate)) {
+            LocalDate candidateStart = cursorEnd.minusDays(step - 1L);
+            LocalDate cursorStart = candidateStart.isBefore(startDate) ? startDate : candidateStart;
+            chunks.add(new DateRange(cursorStart, cursorEnd));
+            cursorEnd = cursorStart.minusDays(1);
         }
-        return LocalDate.now();
+        return chunks;
+    }
+
+    public static LocalDate parseTimestamp(Object val) {
+        if (val == null) {
+            return LocalDate.now(ZoneOffset.UTC);
+        }
+        if (val instanceof Number num) {
+            return Instant.ofEpochMilli(num.longValue()).atZone(ZoneOffset.UTC).toLocalDate();
+        }
+        String text = val.toString().trim();
+        if (text.isEmpty()) {
+            return LocalDate.now(ZoneOffset.UTC);
+        }
+        if (text.length() >= 10) {
+            String head = text.substring(0, 10);
+            try {
+                return LocalDate.parse(head, ISO_DATE_FMT);
+            } catch (Exception ignored) {}
+            try {
+                return LocalDate.parse(head, TR_DATE_FMT);
+            } catch (Exception ignored) {}
+        }
+        if (text.length() == 8 && text.chars().allMatch(Character::isDigit)) {
+            try {
+                return LocalDate.parse(text, API_DATE_FMT);
+            } catch (Exception ignored) {}
+        }
+        try {
+            long ms = Long.parseLong(text);
+            return Instant.ofEpochMilli(ms).atZone(ZoneOffset.UTC).toLocalDate();
+        } catch (Exception ignored) {
+            return LocalDate.now(ZoneOffset.UTC);
+        }
     }
 }
