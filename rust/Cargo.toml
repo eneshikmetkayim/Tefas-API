@@ -4,6 +4,8 @@ version = "1.0.0"
 edition = "2021"
 description = "TEFAS (Türkiye Elektronik Fon Alım Satım Platformu) Pure-HTTP JSON API client"
 license = "MIT"
+repository = "https://github.com/eneshikmetkayim/Tefas-API"
+readme = "README.md"
 
 [dependencies]
 reqwest = { version = "0.12", features = ["json", "rustls-tls"] }

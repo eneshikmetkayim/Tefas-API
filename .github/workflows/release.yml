@@ -75,7 +75,10 @@ jobs:
 
       - name: Verify Rust crate packaging
         working-directory: rust
-        run: cargo package --locked
+        run: |
+          cargo package --locked
+          mkdir -p ../dist/rust
+          cp target/package/*.crate ../dist/rust/
 
       - name: Upload release artifacts
         uses: actions/upload-artifact@v7
@@ -103,3 +106,4 @@ jobs:
             dist/javascript/*.tgz
             dist/dotnet/*.nupkg
             dist/java/*.jar
+            dist/rust/*.crate
