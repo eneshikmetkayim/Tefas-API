@@ -168,6 +168,7 @@ where
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(bound(deserialize = "T: Deserialize<'de>"))]
 struct ApiResponse<T> {
     #[serde(default, rename = "errorCode")]
     error_code: Option<Value>,
