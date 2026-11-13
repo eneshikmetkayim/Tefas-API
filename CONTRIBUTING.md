@@ -14,7 +14,7 @@ Projedeki tüm 6 dil istemcisi doğrudan TEFAS JSON API uç noktalarına (`/api/
    - JavaScript: `cd javascript && npm run lint && npm run build && npm test`
    - Go: `cd go && go test -v ./... && go build ./...`
    - .NET: `cd dotnet && dotnet test`
-   - Java: `cd java && mvn -B test`
+   - Java: `cd java && mvn -B test && ./gradlew test`
    - Rust: `cd rust && cargo fmt --check && cargo test`
 3. Yeni bir TEFAS JSON yanıt örneği ekliyorsanız `fixtures/` klasörüne ekleyin ve `rust/fixtures/` ile senkronize tutun.
 

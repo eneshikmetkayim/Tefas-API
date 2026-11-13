@@ -1,0 +1,109 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/release.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-packages:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: javascript/package-lock.json
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Build Python package
+        run: |
+          python -m pip install --quiet build
+          python -m build python --outdir dist/python
+
+      - name: Build JavaScript package
+        working-directory: javascript
+        run: |
+          npm ci
+          npm run build
+          mkdir -p ../dist/javascript
+          npm pack --pack-destination ../dist/javascript
+
+      - name: Pack .NET package
+        working-directory: dotnet
+        run: |
+          dotnet restore
+          dotnet pack Tefas.Api/Tefas.Api.csproj -c Release --no-restore -p:PackageOutputPath="${{ github.workspace }}/dist/dotnet"
+
+      - name: Build Java packages (Maven & Gradle)
+        working-directory: java
+        run: |
+          mvn -B -DskipTests package
+          ./gradlew jar --no-daemon
+          mkdir -p ../dist/java
+          cp target/*.jar ../dist/java/
+
+      - name: Verify Rust crate packaging
+        working-directory: rust
+        run: |
+          cargo package --locked
+          mkdir -p ../dist/rust
+          cp target/package/*.crate ../dist/rust/
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: tefas-api-packages
+          path: dist/
+
+  github-release:
+    needs: build-packages
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: tefas-api-packages
+          path: dist/
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          generate_release_notes: true
+          files: |
+            dist/python/*
+            dist/javascript/*.tgz
+            dist/dotnet/*.nupkg
+            dist/java/*.jar
+            dist/rust/*.crate
