@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="tr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TEFAS API Docs — 6 Dilde Pure-HTTP Dokümantasyonu</title>
+  <meta name="description" content="TEFAS (Türkiye Elektronik Fon Alım Satım Platformu) için Python, TypeScript/JS, Go, C#/.NET, Java ve Rust dillerinde Pure-HTTP API istemci dokümantasyonu. 19 metot ve 12 doğrulanmış HTTP endpoint referansı.">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand-group">
+        <button id="menu-toggle" class="icon-btn mobile-only" type="button" aria-label="Menüyü aç/kapat">☰</button>
+        <a class="brand" href="#overview">
+          <span class="brand-badge">TEFAS</span>
+          <span class="brand-title">API Dokümantasyonu</span>
+        </a>
+        <span class="version-pill">v1.0.0 · Pure-HTTP</span>
+      </div>
+
+      <div class="topbar-controls">
+        <div class="search-wrap">
+          <input id="search-input" type="search" placeholder="Metot, endpoint veya alan ara… ( / )" aria-label="Dokümantasyonda ara">
+          <span id="search-count" class="search-count" hidden></span>
+        </div>
+
+        <div id="global-lang-bar" class="lang-switcher" role="group" aria-label="Varsayılan programlama dili"></div>
+
+        <button id="theme-toggle" class="icon-btn" type="button" title="Tema değiştir (Koyu / Açık)" aria-label="Tema değiştir">☀️</button>
+        <a class="repo-link" href="https://github.com/eneshikmetkayim/Tefas-API" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+      </div>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside id="sidebar" class="sidebar" aria-label="Bölüm navigasyonu">
+      <div id="sidebar-nav"></div>
+    </aside>
+
+    <main id="main-content" class="content">
+      <section id="overview" class="hero card">
+        <div class="hero-badges">
+          <span class="pill pill-accent">Pure HTTP · Zero Browser</span>
+          <span class="pill">6 Programlama Dili</span>
+          <span class="pill">19 İstemci Metodu</span>
+          <span class="pill">13 TEFAS Endpoint</span>
+          <span class="pill">5 Fon Piyasası</span>
+        </div>
+        <h1>TEFAS Pure-HTTP API İstemcisi</h1>
+        <p class="hero-lead">
+          Türkiye Elektronik Fon Alım Satım Platformu (<strong>TEFAS</strong>) verilerine tarayıcı otomasyonu
+          (Playwright/Chromium) olmadan, doğrudan resmi JSON uç noktalarına <code>POST</code> istekleriyle erişen
+          <strong>Python</strong>, <strong>TypeScript / JavaScript</strong>, <strong>Go</strong>,
+          <strong>C# / .NET</strong>, <strong>Java</strong> ve <strong>Rust</strong> kütüphanelerinin eksiksiz teknik referansı.
+        </p>
+        <div class="hero-stats" id="hero-stats"></div>
+      </section>
+
+      <section id="architecture" class="doc-section">
+        <div class="section-header">
+          <h2>Mimari ve Dayanıklılık Mekanizmaları</h2>
+          <p>Sayfa HTML'ine yapılan istekler WAF'a takıldığı için tüm istemciler doğrudan <code>https://www.tefas.gov.tr/api/...</code> JSON uç noktalarına standart tarayıcı başlıklarıyla <code>POST</code> gönderir.</p>
+        </div>
+        <div id="architecture-grid" class="feature-grid"></div>
+      </section>
+
+      <section id="quickstart" class="doc-section">
+        <div class="section-header">
+          <h2>Kurulum ve İstemci Yapılandırması</h2>
+          <p>Üst menüden veya sekmelerden istediğiniz dili seçtiğinizde sayfadaki tüm örnekler otomatik senkronize olur.</p>
+        </div>
+        <div id="quickstart-container"></div>
+      </section>
+
+      <section id="fund-types" class="doc-section">
+        <div class="section-header">
+          <h2>Desteklenen Fon Piyasaları (<code>FundType</code>)</h2>
+          <p>Tüm listeleme, sıralama, büyüklük ve dağılım uç noktaları aşağıdaki 5 TEFAS piyasasını destekler.</p>
+        </div>
+        <div id="fund-types-container"></div>
+      </section>
+
+      <section id="method-matrix" class="doc-section">
+        <div class="section-header">
+          <h2>Tüm Dillerde 19 Metot Karşılaştırma Matrisi</h2>
+          <p>Her satır ilgili metot kartına doğrudan bağlantı verir.</p>
+        </div>
+        <div id="matrix-container" class="table-wrap"></div>
+      </section>
+
+      <section id="core-methods" class="doc-section">
+        <div class="section-header">
+          <h2>7 Ana Metod (Tüm Dillerde)</h2>
+          <p>Günlük fon listeleme, tekil detay, 28 günlük otomatik parçalı fiyat geçmişi, 22 sınıflı varlık dağılımı, sıralama, piyasa özeti ve istemci içi arama.</p>
+        </div>
+        <div id="core-methods-container" class="endpoint-stack"></div>
+      </section>
+
+      <section id="extended-methods" class="doc-section">
+        <div class="section-header">
+          <h2>12 Araştırılmış Ek ve Referans Endpoint</h2>
+          <p>Tekil özet/kategori sıralaması, ISIN ve işlem profili, 1–60 aylık tek istek seri, büyüklük değişimi, yönetim ücretleri, kurucular, şemsiye fonlar ve duyurular.</p>
+        </div>
+        <div id="extended-methods-container" class="endpoint-stack"></div>
+      </section>
+
+      <section id="http-reference" class="doc-section">
+        <div class="section-header">
+          <h2>Ham HTTP Uç Noktaları ve <code>curl</code> Referansı</h2>
+          <p>SDK kullanmadan doğrudan HTTP çağrısı yapmak veya hata ayıklamak için tüm 13 doğrulanmış <code>POST</code> endpoint şeması.</p>
+        </div>
+        <div id="http-reference-container" class="endpoint-stack"></div>
+      </section>
+
+      <section id="models-errors" class="doc-section">
+        <div class="section-header">
+          <h2>Veri Modelleri, Python <code>sync_*</code> ve Hata Yönetimi</h2>
+          <p>Varlık sınıfları eşlemesi, her dilin hata modeli, Python senkron arayüzü ve test komutları.</p>
+        </div>
+        <div id="models-errors-container"></div>
+      </section>
+
+      <footer class="doc-footer">
+        <div>
+          <strong>TEFAS-API</strong> · MIT Lisansı ·
+          <a href="https://github.com/eneshikmetkayim/Tefas-API" target="_blank" rel="noopener noreferrer">GitHub Reposu</a> ·
+          <a href="https://github.com/eneshikmetkayim/Tefas-API/blob/main/TEFAS_API.md" target="_blank" rel="noopener noreferrer">TEFAS_API.md</a> ·
+          <a href="https://github.com/eneshikmetkayim/Tefas-API/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer">CONTRIBUTING.md</a>
+        </div>
+        <p class="footer-note">Resmi olmayan topluluk istemcisi. Kamuya açık TEFAS API limitlerine (HTTP 429) saygı gösterin.</p>
+      </footer>
+    </main>
+  </div>
+
+  <script src="assets/docs-data.js"></script>
+  <script src="assets/app.js"></script>
+</body>
+</html>
