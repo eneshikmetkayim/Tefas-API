@@ -1,0 +1,15 @@
+{
+  "errorCode": null,
+  "errorMessage": null,
+  "resultList": [
+    {
+      "TARIH": "13.12.2024",
+      "FONKODU": "AAK",
+      "FONUNVAN": "ATA PORTFÖY ÇOKLU VARLIK DEĞİŞKEN FON",
+      "FIYAT": 30.735375,
+      "TEDPAYSAYISI": 3057019,
+      "KISISAYISI": 975,
+      "PORTFOYBUYUKLUK": 93960098.79
+    }
+  ]
+}

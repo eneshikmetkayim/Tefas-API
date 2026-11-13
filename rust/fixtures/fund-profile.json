@@ -1,0 +1,25 @@
+{
+  "errorCode": null,
+  "errorMessage": null,
+  "resultList": [
+    {
+      "fonKodu": "AAL",
+      "fonUnvan": "ATA PORTFÖY PARA PİYASASI (TL) FONU",
+      "isinKodu": "TRMAALWWWWW5",
+      "sonIsSaat": "13:30",
+      "minAlis": 1,
+      "minSatis": 1,
+      "maxAlis": null,
+      "maxSatis": null,
+      "kapLink": "https://www.kap.org.tr/tr/fon-bilgileri/genel/aal-ata-portfoy-para-piyasasi-tl-fonu",
+      "tefasDurum": "TEFAS'ta işlem görüyor",
+      "cikisKomisyonu": null,
+      "girisKomisyonu": null,
+      "basIsSaat": "09:00",
+      "fonSatisValor": 0,
+      "fonGeriAlisValor": 0,
+      "faizIcerigi": null,
+      "riskDegeri": "1"
+    }
+  ]
+}

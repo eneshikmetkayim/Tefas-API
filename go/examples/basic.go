@@ -1,4 +1,3 @@
-// TEFAS API - Go Örnek
 package main
 
 import (
@@ -9,45 +8,60 @@ import (
 )
 
 func main() {
-	fmt.Println("TEFAS API - Go Client")
-	fmt.Println("==================================================")
-
-	client := tefas.NewClient(tefas.DefaultOptions())
-
+	client := tefas.NewClient()
 	if err := client.Start(); err != nil {
 		log.Fatal(err)
 	}
 	defer client.Close()
 
-	// Piyasa özeti
-	fmt.Println("\n📊 Piyasa Özeti")
-	summary, err := client.GetMarketSummary(tefas.FundTypeYAT)
+	fmt.Println("=== PİYASA ÖZETİ ===")
+	summary, err := client.GetMarketSummary(tefas.FundTypeYAT, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("  Fon Sayısı: %d\n", summary.TotalFunds)
-	fmt.Printf("  Toplam Değer: %.2f Trilyon TL\n", summary.TotalValueTrillion())
-	fmt.Printf("  Yatırımcı: %d\n", summary.TotalInvestors)
+	fmt.Printf("Tarih: %s | Fon Sayısı: %d | Toplam Değer: %.2f Trilyon TL | Yatırımcı: %d\n",
+		summary.Date.Format("2006-01-02"), summary.TotalFunds, summary.TotalValueTrillion(), summary.TotalInvestors)
 
-	// En büyük 5 fon
-	fmt.Println("\n🏆 En Büyük 5 Fon")
-	top, err := client.GetTopFunds(tefas.FundTypeYAT, "totalValue", 5)
+	fmt.Println("\n=== EN BÜYÜK 5 FON ===")
+	topFunds, err := client.GetTopFunds(tefas.TopFundsOptions{
+		FundType: tefas.FundTypeYAT,
+		Limit:    5,
+	})
 	if err != nil {
 		log.Fatal(err)
 	}
-	for i, f := range top {
-		fmt.Printf("  %d. %s: %s\n", i+1, f.Code, tefas.FormatTotalValue(f.TotalValue))
+	for _, f := range topFunds {
+		fmt.Printf("%s: %s (%s)\n", f.Code, f.Name, f.FormattedTotalValue())
 	}
 
-	// Fiyat geçmişi
-	fmt.Println("\n📈 AAK Fiyat Geçmişi")
-	history, err := client.GetPriceHistoryDays("AAK", tefas.FundTypeYAT, 5)
+	fmt.Println("\n=== FON DETAYI (AAL) ===")
+	info, err := client.GetFundInfo("AAL")
 	if err != nil {
 		log.Fatal(err)
 	}
-	for _, p := range history {
-		fmt.Printf("  %s: %.6f\n", p.Date.Format("2006-01-02"), p.Price)
+	if info != nil {
+		fmt.Printf("%s | Fiyat: %.6f TL | Kategori: %s (%d/%d)\n",
+			info.Code, info.LastPrice, info.Category, info.CategoryRank, info.CategoryFundCount)
 	}
 
-	fmt.Println("\n✅ Tamamlandı!")
+	profile, err := client.GetFundProfile("AAL")
+	if err != nil {
+		log.Fatal(err)
+	}
+	if profile != nil {
+		fmt.Printf("ISIN: %s | İşlem: %s-%s | Risk: %s\n",
+			profile.ISINCode, profile.StartTradingHour, profile.EndTradingHour, profile.RiskLevel)
+	}
+
+	fmt.Println("\n=== DUYURULAR ===")
+	anns, err := client.GetAnnouncements()
+	if err != nil {
+		log.Fatal(err)
+	}
+	for i, ann := range anns {
+		if i >= 3 {
+			break
+		}
+		fmt.Printf("- [%d] %s\n", ann.SequenceNo, ann.Title)
+	}
 }

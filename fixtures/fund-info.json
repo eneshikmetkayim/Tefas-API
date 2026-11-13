@@ -1,0 +1,19 @@
+{
+  "errorCode": null,
+  "errorMessage": null,
+  "resultList": [
+    {
+      "fonKodu": "AAL",
+      "fonUnvan": "ATA PORTFÖY PARA PİYASASI (TL) FONU",
+      "sonFiyat": 3.732282,
+      "gunlukGetiri": -1.3037,
+      "payAdet": 413972061,
+      "portBuyukluk": 1545060291.13,
+      "fonKategori": "Para Piyasası Fonu",
+      "kategoriDerece": 65,
+      "kategoriFonSay": 86,
+      "yatirimciSayi": 4156,
+      "pazarPayi": 0.1
+    }
+  ]
+}

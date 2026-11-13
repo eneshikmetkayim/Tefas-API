@@ -1,113 +1,97 @@
 # TEFAS API - Java
 
-[![Java](https://img.shields.io/badge/Java-17+-ED8B00.svg)](https://java.com)
+[![Java](https://img.shields.io/badge/Java-21+-ED8B00.svg)](https://openjdk.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-TEFAS (Türkiye Elektronik Fon Alım Satım Platformu) için Java API client.
+TEFAS (Türkiye Elektronik Fon Alım Satım Platformu) için **tarayıcı gerektirmeyen Pure-HTTP** Java 21 API istemcisi (`java.net.http.HttpClient` + `Gson`).
 
-## Kurulum
+## Derleme ve Kurulum
 
-### Maven
-
-```xml
-<dependency>
-    <groupId>com.tefas</groupId>
-    <artifactId>tefas-api</artifactId>
-    <version>1.0.0</version>
-</dependency>
-```
+Playwright veya Lombok gerektirmez. Maven (`pom.xml`) veya Gradle (`build.gradle`) ile derlenebilir:
 
 ```bash
-mvn compile
-```
-
-### Gradle
-
-```groovy
-implementation 'com.tefas:tefas-api:1.0.0'
-```
-
-```bash
-gradle build
+cd java
+mvn test-compile
 ```
 
 ## Hızlı Başlangıç
 
 ```java
 import com.tefas.TefasClient;
-import com.tefas.TefasClientOptions;
 import com.tefas.models.*;
 
 public class Example {
     public static void main(String[] args) {
         try (TefasClient client = new TefasClient()) {
-            // Tüm fonları getir
-            var funds = client.getFunds();
-            System.out.printf("Toplam %d fon bulundu%n", funds.size());
+            client.start();
 
-            // En büyük 5 fon
-            var topFunds = client.getTopFunds(5);
-            for (var fund : topFunds) {
-                System.out.printf("%s: %.2f Milyar ₺%n", 
-                    fund.getCode(), fund.getTotalValueBillion());
+            // 1. Piyasa özeti
+            MarketSummary summary = client.getMarketSummary(FundType.YAT);
+            System.out.printf("%d fon | %.2f Trilyon TL%n",
+                    summary.getTotalFunds(), summary.getTotalValueTrillion());
+
+            // 2. En büyük 5 fon
+            for (Fund f : client.getTopFunds(5)) {
+                System.out.printf("%s: %s%n", f.getCode(), f.getName());
             }
 
-            // Belirli bir fon
-            client.getFund("GRO").ifPresent(fund -> {
-                System.out.printf("%s: %.4f ₺%n", fund.getName(), fund.getPrice());
-            });
+            // 3. Fon özeti ve işlem profili
+            FundInfo info = client.getFundInfo("AAL");
+            FundProfile profile = client.getFundProfile("AAL");
+            if (info != null && profile != null) {
+                System.out.printf("%s | Fiyat: %.6f TL | ISIN: %s | Risk: %s%n",
+                        info.getCode(), info.getLastPrice(),
+                        profile.getIsinCode(), profile.getRiskLevel());
+            }
 
-            // Piyasa özeti
-            var summary = client.getMarketSummary();
-            System.out.printf("Toplam Değer: %.2f Trilyon ₺%n", 
-                summary.getTotalValueTrillion());
+            // 4. Fiyat geçmişi (28 günlük otomatik parçalama) ve portföy dağılımı
+            var history = client.getPriceHistory("AAL", 90);
+            var allocs = client.getAllocation("GTA");
+            System.out.printf("Fiyat noktası: %d, Dağılım: %d%n", history.size(), allocs.size());
         }
     }
 }
 ```
 
-## API Metodları
+> Not: `TefasClientOptions.setHeadless(...)` geriye dönük uyumluluk için `@Deprecated` olarak tutulmuştur ve Pure-HTTP modunda yok sayılır. Birim testleri veya özel proxy için `TefasClientOptions.setTransport(...)` kullanılabilir.
 
-| Metod | Açıklama |
-|-------|----------|
-| `getFunds()` | Tüm fonları listeler |
-| `getFund(code)` | Belirli bir fonun detaylarını getirir |
-| `getPriceHistory(code, days)` | Fon fiyat geçmişini getirir |
-| `getAllocation(code)` | Fon varlık dağılımını getirir |
-| `getTopFunds(limit)` | En büyük fonları sıralar |
-| `getMarketSummary()` | Piyasa özeti ve istatistikleri getirir |
-| `searchFunds(query)` | Fon adı veya koduna göre arama yapar |
+## Desteklenen Fon Tipleri (`FundType`)
 
-## Yapılandırma
+- `FundType.YAT`
+- `FundType.EMK`
+- `FundType.BYF`
+- `FundType.GYF`
+- `FundType.GSYF`
 
-```java
-TefasClientOptions options = new TefasClientOptions();
-options.setHeadless(true);   // Tarayıcı görünmez modda (varsayılan: true)
-options.setTimeout(60000);   // Timeout süresi ms (varsayılan: 60000)
+## Metot Özeti
 
-TefasClient client = new TefasClient(options);
-```
+### 7 Ana Metot
+- `getFunds(FundType fundType)` / `getFunds(FundType fundType, LocalDate targetDate)`
+- `getFund(String code)` / `getFund(String code, FundType fundType, LocalDate targetDate)`
+- `getPriceHistory(String code, int days)` / `getPriceHistory(String code, FundType fundType, LocalDate startDate, LocalDate endDate)`
+- `getAllocation(String code)` / `getAllocation(String code, FundType fundType, LocalDate targetDate)`
+- `getTopFunds(int limit)` / `getTopFunds(FundType fundType, LocalDate targetDate, String by, int limit, boolean ascending)`
+- `getMarketSummary(FundType fundType)` / `getMarketSummary(FundType fundType, LocalDate targetDate)`
+- `searchFunds(String query, FundType fundType)` / `searchFunds(String query, FundType fundType, LocalDate targetDate)`
 
-## Fon Tipleri
+### Araştırılmış Ek Endpointler
+- `getFundCodes(FundType fundType)`
+- `getFundInfo(String code)` / `getFundInfo(String code, String lang)`
+- `getFundProfile(String code)` / `getFundProfile(String code, String lang)`
+- `getPeriodPriceHistory(String code, String period)` / `getPeriodPriceHistory(String code, String period, String lang)`
+- `getFundSizes(FundType fundType, LocalDate startDate, LocalDate endDate, String code)`
+- `getManagementFees(FundType fundType, LocalDate startDate, LocalDate endDate, String code)`
+- `getFundFounders(FundType fundType)`
+- `getFundCategories(FundType fundType)`
+- `getFundGroups(FundType fundType)`
+- `searchFundNames(String query, FundType fundType)`
+- `getFundTypeCode(String code)`
+- `getAnnouncements()` / `getAnnouncements(String lang)`
 
-```java
-// Yatırım Fonları
-var yatFunds = client.getFunds(FundType.YAT, null);
-
-// Emeklilik Fonları
-var emkFunds = client.getFunds(FundType.EMK, null);
-```
-
-## Çalıştırma
+## Test ve Örnek Çalıştırma
 
 ```bash
-# Maven
+cd java
+mvn test
 mvn exec:java -Dexec.mainClass="com.tefas.examples.BasicExample"
-
-# Gradle
-gradle run
 ```
-
-## Lisans
-
-MIT

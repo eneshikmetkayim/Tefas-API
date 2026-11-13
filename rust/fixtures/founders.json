@@ -1,0 +1,16 @@
+{
+  "errorCode": null,
+  "errorMessage": null,
+  "resultList": [
+    {
+      "kurucuKodu": "LAT",
+      "kurucuUnvan": "AHLATCI PORTFÖY YÖNETİMİ ANONİM ŞİRKETİ",
+      "fonTipi": "F"
+    },
+    {
+      "kurucuKodu": "AKP",
+      "kurucuUnvan": "AK PORTFÖY YÖNETİMİ A.Ş.",
+      "fonTipi": "F"
+    }
+  ]
+}

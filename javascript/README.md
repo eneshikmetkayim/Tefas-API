@@ -1,86 +1,98 @@
-# TEFAS API - JavaScript/TypeScript
+# TEFAS API - JavaScript / TypeScript
 
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://typescriptlang.org)
+[![Node.js](https://img.shields.io/badge/Node.js-20+-green.svg)](https://nodejs.org)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-TEFAS (Türkiye Elektronik Fon Alım Satım Platformu) için TypeScript/JavaScript API client.
+TEFAS (Türkiye Elektronik Fon Alım Satım Platformu) için **sıfır runtime bağımlılıklı Pure-HTTP** TypeScript/JavaScript API istemcisi (ESM + CJS + `.d.ts`).
 
 ## Kurulum
 
+Harici tarayıcı (`playwright`) veya üçüncü parti HTTP kütüphanesi gerektirmez; Node.js 20+ yerleşik `fetch` API'sini kullanır.
+
 ```bash
+cd javascript
 npm install
-npx playwright install chromium
+npm run build
 ```
 
 ## Hızlı Başlangıç
 
 ```typescript
-import { TefasClient, FundType } from 'tefas-api';
+import { TefasClient, FundType, formatTotalValue } from "tefas-api";
 
-const client = new TefasClient();
+async function main() {
+  const client = new TefasClient();
+  await client.start();
 
-// Tüm fonları getir
-const funds = await client.getFunds();
-console.log(`Toplam ${funds.length} fon bulundu`);
+  try {
+    // Piyasa özeti
+    const summary = await client.getMarketSummary(FundType.YAT);
+    console.log(`${summary.totalFunds} fon | ${formatTotalValue(summary.totalValue)}`);
 
-// En büyük 5 fon
-const topFunds = await client.getTopFunds({ limit: 5 });
-topFunds.forEach(fund => {
-    console.log(`${fund.code}: ${fund.totalValueBillion.toFixed(2)} Milyar ₺`);
-});
+    // En büyük 5 fon
+    for (const f of await client.getTopFunds({ limit: 5 })) {
+      console.log(`${f.code}: ${f.name} - ${formatTotalValue(f.totalValue)}`);
+    }
 
-// Belirli bir fon
-const fund = await client.getFund('GRO');
-if (fund) {
-    console.log(`${fund.name}: ${fund.price.toFixed(4)} ₺`);
+    // Fon detayı + özet bilgi + profil
+    const fund = await client.getFund("AAL");
+    const info = await client.getFundInfo("AAL");
+    const profile = await client.getFundProfile("AAL");
+    console.log(fund?.price, info?.category, profile?.isinCode);
+
+    // 28 günlük otomatik chunking ile fiyat geçmişi veya tek istekte 12 aylık seri
+    const history = await client.getPriceHistory("AAL", { days: 90 });
+    const periodHistory = await client.getPeriodPriceHistory("AAL", "12");
+    console.log(history.length, periodHistory.length);
+  } finally {
+    await client.close();
+  }
 }
 
-// Piyasa özeti
-const summary = await client.getMarketSummary();
-console.log(`Toplam Değer: ${summary.totalValueTrillion.toFixed(2)} Trilyon ₺`);
-
-await client.close();
+main();
 ```
 
-## API Metodları
+> Not: `new TefasClient({ headless, timeout })` imzasındaki `headless` seçeneği geriye dönük uyumluluk için tutulur; Pure-HTTP modunda dikkate alınmaz.
 
-| Metod | Açıklama |
-|-------|----------|
-| `getFunds()` | Tüm fonları listeler |
-| `getFund(code)` | Belirli bir fonun detaylarını getirir |
-| `getPriceHistory(code, options)` | Fon fiyat geçmişini getirir |
-| `getAllocation(code)` | Fon varlık dağılımını getirir |
-| `getTopFunds(options)` | En büyük fonları sıralar |
-| `getMarketSummary()` | Piyasa özeti ve istatistikleri getirir |
-| `searchFunds(query)` | Fon adı veya koduna göre arama yapar |
+## Desteklenen Fon Tipleri (`FundType`)
 
-## Yapılandırma
+- `FundType.YAT` (`"YAT"`)
+- `FundType.EMK` (`"EMK"`)
+- `FundType.BYF` (`"BYF"`)
+- `FundType.GYF` (`"GYF"`)
+- `FundType.GSYF` (`"GSYF"`)
 
-```typescript
-const client = new TefasClient({
-    headless: true,   // Tarayıcı görünmez modda (varsayılan: true)
-    timeout: 60000    // Timeout süresi ms (varsayılan: 60000)
-});
-```
+## Metot Özeti
 
-## Fon Tipleri
+### 7 Ana Metot
+- `getFunds(fundType?, targetDate?)`
+- `getFund(code, fundType?, targetDate?)`
+- `getPriceHistory(code, options?)`
+- `getAllocation(code, fundType?, targetDate?)`
+- `getTopFunds(options?)`
+- `getMarketSummary(fundType?, targetDate?)`
+- `searchFunds(query, fundType?, targetDate?)`
 
-```typescript
-import { FundType } from 'tefas-api';
+### Araştırılmış Ek Endpointler
+- `getFundCodes(fundType?)`
+- `getFundInfo(code, lang?)`
+- `getFundProfile(code, lang?)`
+- `getPeriodPriceHistory(code, period?, lang?)` (`"1" | "3" | "6" | "12" | "36" | "60"`)
+- `getFundSizes(options?)`
+- `getManagementFees(options?)`
+- `getFundFounders(fundType?, lang?)`
+- `getFundCategories(fundType?, lang?)`
+- `getFundGroups(fundType?, lang?)`
+- `searchFundNames(query, fundType?, lang?)`
+- `getFundTypeCode(code)`
+- `getAnnouncements(lang?)`
 
-// Yatırım Fonları
-const yatFunds = await client.getFunds(FundType.YAT);
-
-// Emeklilik Fonları
-const emkFunds = await client.getFunds(FundType.EMK);
-```
-
-## Derleme
+## Geliştirme ve Test
 
 ```bash
-npm run build
+cd javascript
+npm run lint    # tsc --noEmit
+npm run build   # ESM + CJS + d.ts çıktısı
+npm test        # Node native test runner + tsx
 ```
-
-## Lisans
-
-MIT

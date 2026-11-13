@@ -1,81 +1,23 @@
 # Katkıda Bulunma Rehberi
 
-TEFAS API projesine katkıda bulunmak istediğiniz için teşekkürler! 🎉
+TEFAS API projesine katkıda bulunmak istediğiniz için teşekkürler!
 
-## Nasıl Katkıda Bulunabilirim?
+## Mimari İlke: Pure HTTP (Tarayıcı Bağımlılığı Yok)
 
-### Bug Bildirimi
+Projedeki tüm 6 dil istemcisi doğrudan TEFAS JSON API uç noktalarına (`/api/funds/*`, `/api/announcements/*`) HTTP `POST` istekleri atar. Yeni özelliklerde tarayıcı otomasyonu (Playwright, Puppeteer, Selenium) eklemeyin.
 
-1. Önce [mevcut issue'ları](https://github.com/eneshenderson/tefas-api/issues) kontrol edin
-2. Yeni bir issue açın ve şunları belirtin:
-   - Hangi dil/paket
-   - Hata mesajı
-   - Tekrar üretme adımları
-   - Beklenen davranış
+## Değişiklik Yaparken Dikkat Edilecekler
 
-### Yeni Özellik Önerisi
+1. Yeni eklenen bir özellik veya hata düzeltmesi ilgili diğer dil istemcileriyle uyumlu olmalıdır.
+2. Her dil için mevcut birim ve fikstür testlerini çalıştırın:
+   - Python: `python -m unittest discover -s python/tests -v`
+   - JavaScript: `cd javascript && npm run lint && npm run build && npm test`
+   - Go: `cd go && go test -v ./... && go build ./...`
+   - .NET: `cd dotnet && dotnet test`
+   - Java: `cd java && mvn -B test`
+   - Rust: `cd rust && cargo fmt --check && cargo test`
+3. Yeni bir TEFAS JSON yanıt örneği ekliyorsanız `fixtures/` klasörüne ekleyin ve `rust/fixtures/` ile senkronize tutun.
 
-1. Issue açarak önerinizi tartışmaya açın
-2. Onay aldıktan sonra geliştirmeye başlayın
+## Sorun Bildirimi
 
-### Pull Request
-
-1. Projeyi fork edin
-2. Feature branch oluşturun: `git checkout -b feature/amazing-feature`
-3. Değişikliklerinizi commit edin: `git commit -m 'Add amazing feature'`
-4. Branch'i push edin: `git push origin feature/amazing-feature`
-5. Pull Request açın
-
-## Geliştirme Ortamı
-
-### Python
-
-```bash
-cd python
-pip install -e .
-playwright install chromium
-```
-
-### JavaScript/TypeScript
-
-```bash
-cd javascript
-npm install
-npx playwright install chromium
-```
-
-### Go
-
-```bash
-cd go
-go mod download
-go run github.com/playwright-community/playwright-go/cmd/playwright install chromium
-```
-
-### .NET
-
-```bash
-cd dotnet
-dotnet restore
-dotnet build
-```
-
-### Java
-
-```bash
-cd java
-gradle build
-# veya
-mvn compile
-```
-
-## Kod Standartları
-
-- Her dil için o dilin standart formatını kullanın
-- Yeni özellikler için dokümantasyon ekleyin
-- Mümkünse test yazın
-- Commit mesajları açıklayıcı olsun
-
-## Lisans
-
-Katkılarınız MIT lisansı altında lisanslanacaktır.
+Hata ve önerileriniz için GitHub Issues sayfasını kullanabilirsiniz: https://github.com/eneshikmetkayim/Tefas-API/issues

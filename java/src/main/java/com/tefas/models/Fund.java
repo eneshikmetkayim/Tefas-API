@@ -15,11 +15,11 @@ public class Fund {
     private double totalValue;
     private long shareCount;
     private long investorCount;
+    private Double exchangeBulletinPrice;
     private Map<String, Object> rawData;
 
     public Fund() {}
 
-    // Getters
     public String getCode() { return code; }
     public String getName() { return name; }
     public double getPrice() { return price; }
@@ -28,9 +28,9 @@ public class Fund {
     public double getTotalValue() { return totalValue; }
     public long getShareCount() { return shareCount; }
     public long getInvestorCount() { return investorCount; }
+    public Double getExchangeBulletinPrice() { return exchangeBulletinPrice; }
     public Map<String, Object> getRawData() { return rawData; }
 
-    // Setters
     public void setCode(String code) { this.code = code; }
     public void setName(String name) { this.name = name; }
     public void setPrice(double price) { this.price = price; }
@@ -39,11 +39,9 @@ public class Fund {
     public void setTotalValue(double totalValue) { this.totalValue = totalValue; }
     public void setShareCount(long shareCount) { this.shareCount = shareCount; }
     public void setInvestorCount(long investorCount) { this.investorCount = investorCount; }
+    public void setExchangeBulletinPrice(Double exchangeBulletinPrice) { this.exchangeBulletinPrice = exchangeBulletinPrice; }
     public void setRawData(Map<String, Object> rawData) { this.rawData = rawData; }
 
-    /** Toplam değeri milyar TL cinsinden döndürür */
     public double getTotalValueBillion() { return totalValue / 1e9; }
-    
-    /** Toplam değeri milyon TL cinsinden döndürür */
     public double getTotalValueMillion() { return totalValue / 1e6; }
 }

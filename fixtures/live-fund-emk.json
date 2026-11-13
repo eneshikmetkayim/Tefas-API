@@ -1,0 +1,19 @@
+{
+  "errorCode": null,
+  "errorMessage": null,
+  "resultList": [
+    {
+      "fonKodu": "AAJ",
+      "fonUnvan": "AGESA HAYAT VE EMEKLİLİK A.Ş. OKS STANDART EMEKLİLİK YATIRIM FONU",
+      "tarih": "2026-11-10",
+      "fiyat": 0.112734,
+      "tedPaySayisi": 49217355066.612,
+      "kisiSayisi": 669644,
+      "portfoyBuyukluk": 5548465006.78,
+      "borsaBultenFiyat": null,
+      "rn": 1
+    }
+  ],
+  "toplamSayi": 1,
+  "toplamSayfa": 1
+}

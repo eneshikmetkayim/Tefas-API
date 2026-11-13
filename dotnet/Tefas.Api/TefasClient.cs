@@ -1,126 +1,185 @@
+using System.Net;
+using System.Text;
 using System.Text.Json;
-using Microsoft.Playwright;
 using Tefas.Api.Helpers;
 using Tefas.Api.Models;
 
 namespace Tefas.Api;
 
 /// <summary>
-/// TEFAS API Client
+/// TEFAS Pure-HTTP API Client for .NET
 /// </summary>
-public class TefasClient : IAsyncDisposable
+public class TefasClient : IAsyncDisposable, IDisposable
 {
     private const string BaseUrl = "https://www.tefas.gov.tr";
-    
+    private const int MaxFallbackBusinessDays = 7;
+    private const int MaxRateLimitRetries = 3;
+    private const int MaxChunkDays = 28;
+    private const string DefaultUserAgent =
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
+
+    private static readonly string[] EmptyResultMarkers =
+        { "index 0 out of bounds", "kayıt bulunamadı", "kayit bulunamadi" };
+
+    private static readonly string[] WafMarkers =
+        { "erişim engellendi", "web application firewall" };
+
     private readonly TefasClientOptions _options;
-    private IPlaywright? _playwright;
-    private IBrowser? _browser;
-    private IPage? _page;
+    private readonly HttpClient _httpClient;
+    private readonly bool _ownsHttpClient;
+    private readonly Dictionary<FundType, DateTime> _latestDates = new();
     private bool _started;
 
     public TefasClient(TefasClientOptions? options = null)
     {
         _options = options ?? new TefasClientOptions();
+        if (_options.HttpMessageHandler is not null)
+        {
+            _httpClient = new HttpClient(_options.HttpMessageHandler, disposeHandler: false);
+            _ownsHttpClient = true;
+        }
+        else
+        {
+            var handler = new HttpClientHandler
+            {
+                AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
+                UseCookies = true,
+                CookieContainer = new CookieContainer()
+            };
+            _httpClient = new HttpClient(handler, disposeHandler: true);
+            _ownsHttpClient = true;
+        }
+        _httpClient.Timeout = TimeSpan.FromMilliseconds(Math.Max(1000, _options.Timeout));
     }
 
-    /// <summary>
-    /// Tarayıcıyı başlat
-    /// </summary>
-    public async Task StartAsync()
+    public Task StartAsync()
     {
-        if (_started) return;
-
-        _playwright = await Playwright.CreateAsync();
-        _browser = await _playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = _options.Headless,
-            Args = new[] { "--no-sandbox", "--disable-dev-shm-usage" }
-        });
-
-        _page = await _browser.NewPageAsync();
-        _page.SetDefaultTimeout(_options.Timeout);
-        _page.SetDefaultNavigationTimeout(_options.Timeout);
-
-        await _page.SetExtraHTTPHeadersAsync(new Dictionary<string, string>
-        {
-            ["Accept-Language"] = "tr-TR,tr;q=0.9,en;q=0.8"
-        });
-
-        await _page.GotoAsync($"{BaseUrl}/tr/fon-verileri",
-            new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        
-        await Task.Delay(1000);
         _started = true;
+        return Task.CompletedTask;
     }
 
-    /// <summary>
-    /// Tarayıcıyı kapat
-    /// </summary>
-    public async ValueTask DisposeAsync()
+    public static bool IsEmptyResultMessage(string? errorCode, string? errorMessage, int resultCount)
     {
-        if (_browser != null)
-            await _browser.CloseAsync();
-        
-        _playwright?.Dispose();
-        _started = false;
+        if (!string.IsNullOrEmpty(errorCode))
+            return false;
+        if (resultCount > 0)
+            return false;
+        if (string.IsNullOrWhiteSpace(errorMessage))
+            return false;
+        var lowered = errorMessage.ToLowerInvariant();
+        return EmptyResultMarkers.Any(marker => lowered.Contains(marker, StringComparison.Ordinal));
     }
 
-    private async Task<JsonElement> CallApiAsync(string endpoint, Dictionary<string, object?> parameters)
+    private static string ResolveUrl(string endpoint)
     {
-        if (!_started) await StartAsync();
-        if (_page == null) throw new InvalidOperationException("Page not initialized");
-
-        var paramsJson = JsonSerializer.Serialize(parameters);
-        
-        var script = $@"
-            async () => {{
-                const res = await fetch('/api/funds/{endpoint}', {{
-                    method: 'POST',
-                    headers: {{
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json'
-                    }},
-                    body: JSON.stringify({paramsJson})
-                }});
-                const text = await res.text();
-                if (text.includes('Erişim Engellendi') || text.includes('Web Application Firewall')) {{
-                    throw new Error('WAF_BLOCKED');
-                }}
-                if (!res.ok) throw new Error(`HTTP ${{res.status}}: ${{text.substring(0, 200)}}`);
-                const data = JSON.parse(text);
-                if (data.errorCode || data.errorMessage) throw new Error(
-                    (data.errorMessage || 'TEFAS API error') + (data.errorCode ? ` (${{data.errorCode}})` : ''));
-                return data;
-            }}
-        ";
-
-        var result = await _page.EvaluateAsync<JsonElement>(script);
-        return result;
+        if (endpoint.StartsWith("/api/", StringComparison.Ordinal))
+            return BaseUrl + endpoint;
+        return $"{BaseUrl}/api/funds/{endpoint.TrimStart('/')}";
     }
 
-    private Dictionary<string, object?> BuildParams(
-        FundType fundType, 
-        string fundCode = "", 
-        DateTime? startDate = null, 
-        DateTime? endDate = null)
+    private async Task<JsonDocument> CallApiAsync(
+        string endpoint,
+        object parameters,
+        CancellationToken cancellationToken = default)
     {
-        var start = startDate ?? DateHelper.GetLastBusinessDay();
-        var end = endDate ?? DateHelper.GetLastBusinessDay();
+        if (!_started)
+            await StartAsync();
 
+        var url = ResolveUrl(endpoint);
+        var jsonBody = JsonSerializer.Serialize(parameters);
+
+        for (var attempt = 0; attempt <= MaxRateLimitRetries; attempt++)
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Post, url)
+            {
+                Content = new StringContent(jsonBody, Encoding.UTF8, "application/json")
+            };
+            request.Headers.TryAddWithoutValidation("Accept", "application/json");
+            request.Headers.TryAddWithoutValidation("Accept-Language", "tr-TR,tr;q=0.9,en;q=0.8");
+            request.Headers.TryAddWithoutValidation("User-Agent", DefaultUserAgent);
+            request.Headers.TryAddWithoutValidation("Origin", BaseUrl);
+            request.Headers.TryAddWithoutValidation("Referer", BaseUrl + "/tr/fon-karsilastirma");
+
+            using var response = await _httpClient.SendAsync(request, cancellationToken);
+            var text = await response.Content.ReadAsStringAsync(cancellationToken);
+            var lowered = text.ToLowerInvariant();
+
+            if (WafMarkers.Any(m => lowered.Contains(m, StringComparison.Ordinal)) ||
+                text.TrimStart().StartsWith('<'))
+            {
+                throw new InvalidOperationException("WAF_BLOCKED: İstek WAF tarafından engellendi.");
+            }
+
+            if ((int)response.StatusCode == 429)
+            {
+                if (attempt < MaxRateLimitRetries)
+                {
+                    await Task.Delay(1500 * (1 << attempt), cancellationToken);
+                    continue;
+                }
+                throw new HttpRequestException($"HTTP 429 rate limit: {text[..Math.Min(200, text.Length)]}");
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new HttpRequestException($"HTTP {(int)response.StatusCode}: {text[..Math.Min(200, text.Length)]}");
+            }
+
+            var doc = JsonDocument.Parse(text);
+            var root = doc.RootElement;
+
+            string? errorCode = null;
+            if (root.TryGetProperty("errorCode", out var ecEl) && ecEl.ValueKind != JsonValueKind.Null)
+                errorCode = ecEl.ToString();
+
+            string? errorMessage = null;
+            if (root.TryGetProperty("errorMessage", out var emEl) && emEl.ValueKind == JsonValueKind.String)
+                errorMessage = emEl.GetString();
+
+            var resultCount = 0;
+            if (root.TryGetProperty("resultList", out var rlEl) && rlEl.ValueKind == JsonValueKind.Array)
+                resultCount = rlEl.GetArrayLength();
+
+            if (IsEmptyResultMessage(errorCode, errorMessage, resultCount))
+            {
+                doc.Dispose();
+                return JsonDocument.Parse("{\"resultList\":[],\"toplamSayi\":0,\"toplamSayfa\":0}");
+            }
+
+            if (!string.IsNullOrEmpty(errorCode) || !string.IsNullOrEmpty(errorMessage))
+            {
+                doc.Dispose();
+                throw new InvalidOperationException(errorMessage ?? $"TEFAS API hatası (kod: {errorCode})");
+            }
+
+            return doc;
+        }
+
+        throw new HttpRequestException("API çağrısı rate limit nedeniyle tamamlanamadı.");
+    }
+
+    private static Dictionary<string, object?> BuildParams(
+        FundType fundType,
+        string fundCode,
+        DateTime startDate,
+        DateTime endDate,
+        int bitSira = 100000)
+    {
+        var normalized = string.IsNullOrWhiteSpace(fundCode) ? null : fundCode.Trim().ToUpperInvariant();
         return new Dictionary<string, object?>
         {
             ["fonTipi"] = fundType.ToString(),
-            ["fonKodu"] = fundCode,
+            ["fonKodu"] = normalized,
             ["aramaMetni"] = null,
             ["fonTurKod"] = null,
             ["fonGrubu"] = null,
             ["sfonTurKod"] = null,
             ["fonTurAciklama"] = null,
             ["kurucuKod"] = null,
-            ["basTarih"] = DateHelper.FormatDate(start),
-            ["bitTarih"] = DateHelper.FormatDate(end),
+            ["basTarih"] = DateHelper.FormatDate(startDate),
+            ["bitTarih"] = DateHelper.FormatDate(endDate),
             ["basSira"] = 1,
-            ["bitSira"] = 100000,
+            ["bitSira"] = bitSira,
             ["dil"] = "TR",
             ["sFonTurKod"] = "",
             ["fonKod"] = "",
@@ -129,138 +188,270 @@ public class TefasClient : IAsyncDisposable
         };
     }
 
-    // ==================== Public API Methods ====================
-
-    /// <summary>
-    /// Tüm fonları getir
-    /// </summary>
-    public async Task<List<Fund>> GetFundsAsync(
-        FundType fundType = FundType.YAT, 
-        DateTime? targetDate = null)
+    private static List<T> MapResultList<T>(JsonDocument doc, Func<JsonElement, T> mapper)
     {
-        var date = targetDate ?? DateHelper.GetLastBusinessDay();
-        var parameters = BuildParams(fundType, "", date, date);
-        var result = await CallApiAsync("fonGnlBlgSiraliGetir", parameters);
-
-        var funds = new List<Fund>();
-        if (result.TryGetProperty("resultList", out var data) && data.ValueKind == JsonValueKind.Array)
+        var items = new List<T>();
+        if (doc.RootElement.TryGetProperty("resultList", out var list) && list.ValueKind == JsonValueKind.Array)
         {
-            foreach (var item in data.EnumerateArray())
+            foreach (var item in list.EnumerateArray())
             {
-                funds.Add(DataParser.ParseFund(item, fundType));
+                items.Add(mapper(item));
             }
         }
-        return funds;
+        return items;
     }
 
-    /// <summary>
-    /// Belirli bir fonu getir
-    /// </summary>
-    public async Task<Fund?> GetFundAsync(
-        string code, 
-        FundType fundType = FundType.YAT, 
-        DateTime? targetDate = null)
+    private async Task<DateTime> ResolveLatestDateAsync(
+        FundType fundType,
+        string endpoint = "fonGnlBlgSiraliGetir",
+        CancellationToken cancellationToken = default)
     {
-        var date = targetDate ?? DateHelper.GetLastBusinessDay();
-        var parameters = BuildParams(fundType, code.ToUpper(), date, date);
-        var result = await CallApiAsync("fonGnlBlgSiraliGetir", parameters);
+        if (_latestDates.TryGetValue(fundType, out var cached))
+            return cached;
 
-        if (result.TryGetProperty("resultList", out var data) &&
-            data.ValueKind == JsonValueKind.Array && 
-            data.GetArrayLength() > 0)
+        var candidate = DateHelper.GetLastBusinessDay();
+        for (var i = 0; i < MaxFallbackBusinessDays; i++)
         {
-            return DataParser.ParseFund(data[0], fundType);
+            var parameters = BuildParams(fundType, "", candidate, candidate, 1);
+            if (endpoint == "dagilimSiraliGetirT")
+                parameters["fonKod"] = null;
+
+            using var doc = await CallApiAsync(endpoint, parameters, cancellationToken);
+            if (doc.RootElement.TryGetProperty("resultList", out var list) &&
+                list.ValueKind == JsonValueKind.Array &&
+                list.GetArrayLength() > 0)
+            {
+                _latestDates[fundType] = candidate;
+                return candidate;
+            }
+            candidate = DateHelper.PreviousBusinessDay(candidate);
         }
-        return null;
+
+        var fallback = DateHelper.GetLastBusinessDay();
+        _latestDates[fundType] = fallback;
+        return fallback;
     }
 
-    /// <summary>
-    /// Fon fiyat geçmişini getir
-    /// </summary>
+    // ==================== 7 Ana Metod ====================
+
+    public async Task<List<Fund>> GetFundsAsync(
+        FundType fundType = FundType.YAT,
+        DateTime? targetDate = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (targetDate.HasValue)
+        {
+            var parameters = BuildParams(fundType, "", targetDate.Value, targetDate.Value);
+            using var doc = await CallApiAsync("fonGnlBlgSiraliGetir", parameters, cancellationToken);
+            return MapResultList(doc, el => DataParser.ParseFund(el, fundType));
+        }
+
+        var candidate = _latestDates.TryGetValue(fundType, out var cached)
+            ? cached
+            : DateHelper.GetLastBusinessDay();
+
+        for (var i = 0; i < MaxFallbackBusinessDays; i++)
+        {
+            var parameters = BuildParams(fundType, "", candidate, candidate);
+            using var doc = await CallApiAsync("fonGnlBlgSiraliGetir", parameters, cancellationToken);
+            var funds = MapResultList(doc, el => DataParser.ParseFund(el, fundType));
+            if (funds.Count > 0)
+            {
+                _latestDates[fundType] = candidate;
+                return funds;
+            }
+            candidate = DateHelper.PreviousBusinessDay(candidate);
+        }
+
+        return new List<Fund>();
+    }
+
+    public async Task<Fund?> GetFundAsync(
+        string code,
+        FundType fundType = FundType.YAT,
+        DateTime? targetDate = null,
+        CancellationToken cancellationToken = default)
+    {
+        var normalized = code.Trim().ToUpperInvariant();
+        if (string.IsNullOrEmpty(normalized))
+            return null;
+
+        if (targetDate.HasValue)
+        {
+            var parameters = BuildParams(fundType, normalized, targetDate.Value, targetDate.Value);
+            using var doc = await CallApiAsync("fonGnlBlgSiraliGetir", parameters, cancellationToken);
+            var list = MapResultList(doc, el => DataParser.ParseFund(el, fundType));
+            return list.FirstOrDefault();
+        }
+
+        var hasCached = _latestDates.TryGetValue(fundType, out var cached);
+        var candidate = hasCached ? cached : DateHelper.GetLastBusinessDay();
+        var initialParams = BuildParams(fundType, normalized, candidate, candidate);
+        using (var initialDoc = await CallApiAsync("fonGnlBlgSiraliGetir", initialParams, cancellationToken))
+        {
+            var initialList = MapResultList(initialDoc, el => DataParser.ParseFund(el, fundType));
+            if (initialList.Count > 0)
+            {
+                _latestDates[fundType] = candidate;
+                return initialList[0];
+            }
+        }
+
+        if (hasCached)
+            return null;
+
+        var resolved = await ResolveLatestDateAsync(fundType, "fonGnlBlgSiraliGetir", cancellationToken);
+        if (resolved.Date == candidate.Date)
+            return null;
+
+        var retryParams = BuildParams(fundType, normalized, resolved, resolved);
+        using var retryDoc = await CallApiAsync("fonGnlBlgSiraliGetir", retryParams, cancellationToken);
+        return MapResultList(retryDoc, el => DataParser.ParseFund(el, fundType)).FirstOrDefault();
+    }
+
     public async Task<List<FundPrice>> GetPriceHistoryAsync(
         string code,
         FundType fundType = FundType.YAT,
         DateTime? startDate = null,
         DateTime? endDate = null,
-        int? days = null)
+        int? days = null,
+        CancellationToken cancellationToken = default)
     {
-        var end = endDate ?? DateHelper.GetLastBusinessDay();
-        var start = startDate ?? (days.HasValue 
-            ? end.AddDays(-days.Value) 
-            : end.AddDays(-30));
+        var normalized = code.Trim().ToUpperInvariant();
+        if (string.IsNullOrEmpty(normalized))
+            return new List<FundPrice>();
 
-        var parameters = BuildParams(fundType, code.ToUpper(), start, end);
-        var result = await CallApiAsync("fonGnlBlgSiraliGetir", parameters);
+        var end = (endDate ?? DateHelper.GetLastBusinessDay()).Date;
+        var start = days.HasValue
+            ? end.AddDays(-days.Value)
+            : (startDate?.Date ?? end.AddDays(-30));
 
-        var prices = new List<FundPrice>();
-        if (result.TryGetProperty("resultList", out var data) && data.ValueKind == JsonValueKind.Array)
+        var chunks = DateHelper.IterDateChunks(start, end, MaxChunkDays);
+        if (chunks.Count == 0)
+            return new List<FundPrice>();
+
+        var byDate = new Dictionary<DateTime, FundPrice>();
+        for (var i = 0; i < chunks.Count; i++)
         {
-            foreach (var item in data.EnumerateArray())
+            if (i > 0)
+                await Task.Delay(350, cancellationToken);
+
+            var parameters = BuildParams(fundType, normalized, chunks[i].Start, chunks[i].End);
+            using var doc = await CallApiAsync("fonGnlBlgSiraliGetir", parameters, cancellationToken);
+            foreach (var p in MapResultList(doc, DataParser.ParseFundPrice))
             {
-                prices.Add(DataParser.ParseFundPrice(item));
+                byDate[p.Date.Date] = p;
             }
         }
-        return prices;
+
+        return byDate.Values.OrderByDescending(p => p.Date).ToList();
     }
 
-    /// <summary>
-    /// Fon varlık dağılımını getir
-    /// </summary>
     public async Task<List<FundAllocation>> GetAllocationAsync(
         string code = "",
         FundType fundType = FundType.YAT,
-        DateTime? targetDate = null)
+        DateTime? targetDate = null,
+        CancellationToken cancellationToken = default)
     {
-        var date = targetDate ?? DateHelper.GetLastBusinessDay();
-        var parameters = BuildParams(fundType, code.ToUpper(), date, date);
-        parameters["fonKod"] = string.IsNullOrWhiteSpace(code) ? null : code.ToUpperInvariant();
-        var result = await CallApiAsync("dagilimSiraliGetirT", parameters);
+        var normalized = code.Trim().ToUpperInvariant();
 
-        var allocations = new List<FundAllocation>();
-        if (result.TryGetProperty("resultList", out var data) && data.ValueKind == JsonValueKind.Array)
+        if (targetDate.HasValue)
         {
-            foreach (var item in data.EnumerateArray())
+            var parameters = BuildParams(fundType, normalized, targetDate.Value, targetDate.Value);
+            parameters["fonKod"] = string.IsNullOrEmpty(normalized) ? null : normalized;
+            using var doc = await CallApiAsync("dagilimSiraliGetirT", parameters, cancellationToken);
+            return MapResultList(doc, DataParser.ParseAllocation);
+        }
+
+        if (string.IsNullOrEmpty(normalized))
+        {
+            var dateCandidate = _latestDates.TryGetValue(fundType, out var c)
+                ? c
+                : DateHelper.GetLastBusinessDay();
+
+            for (var i = 0; i < MaxFallbackBusinessDays; i++)
             {
-                allocations.Add(DataParser.ParseAllocation(item));
+                var parameters = BuildParams(fundType, "", dateCandidate, dateCandidate);
+                parameters["fonKod"] = null;
+                using var doc = await CallApiAsync("dagilimSiraliGetirT", parameters, cancellationToken);
+                var rows = MapResultList(doc, DataParser.ParseAllocation);
+                if (rows.Count > 0)
+                {
+                    _latestDates[fundType] = dateCandidate;
+                    return rows;
+                }
+                dateCandidate = DateHelper.PreviousBusinessDay(dateCandidate);
+            }
+            return new List<FundAllocation>();
+        }
+
+        var hasCached = _latestDates.TryGetValue(fundType, out var cached);
+        var candidate = hasCached ? cached : DateHelper.GetLastBusinessDay();
+        var initialParams = BuildParams(fundType, normalized, candidate, candidate);
+        initialParams["fonKod"] = normalized;
+        using (var initialDoc = await CallApiAsync("dagilimSiraliGetirT", initialParams, cancellationToken))
+        {
+            var initialRows = MapResultList(initialDoc, DataParser.ParseAllocation);
+            if (initialRows.Count > 0)
+            {
+                _latestDates[fundType] = candidate;
+                return initialRows;
             }
         }
-        return allocations;
+
+        if (hasCached)
+            return new List<FundAllocation>();
+
+        var resolved = await ResolveLatestDateAsync(fundType, "dagilimSiraliGetirT", cancellationToken);
+        if (resolved.Date == candidate.Date)
+            return new List<FundAllocation>();
+
+        var retryParams = BuildParams(fundType, normalized, resolved, resolved);
+        retryParams["fonKod"] = normalized;
+        using var retryDoc = await CallApiAsync("dagilimSiraliGetirT", retryParams, cancellationToken);
+        return MapResultList(retryDoc, DataParser.ParseAllocation);
     }
 
-    /// <summary>
-    /// En büyük fonları getir
-    /// </summary>
     public async Task<List<Fund>> GetTopFundsAsync(
         FundType fundType = FundType.YAT,
-        string by = "TotalValue",
+        DateTime? targetDate = null,
+        string by = "total_value",
         int limit = 10,
-        DateTime? targetDate = null)
+        bool ascending = false,
+        CancellationToken cancellationToken = default)
     {
-        var funds = await GetFundsAsync(fundType, targetDate);
-
-        var sorted = by.ToLower() switch
+        var funds = await GetFundsAsync(fundType, targetDate, cancellationToken);
+        IEnumerable<Fund> ordered = by switch
         {
-            "investorcount" => funds.OrderByDescending(f => f.InvestorCount),
-            "price" => funds.OrderByDescending(f => f.Price),
-            _ => funds.OrderByDescending(f => f.TotalValue)
+            "investor_count" => ascending
+                ? funds.OrderBy(f => f.InvestorCount)
+                : funds.OrderByDescending(f => f.InvestorCount),
+            "price" => ascending
+                ? funds.OrderBy(f => f.Price)
+                : funds.OrderByDescending(f => f.Price),
+            "share_count" => ascending
+                ? funds.OrderBy(f => f.ShareCount)
+                : funds.OrderByDescending(f => f.ShareCount),
+            _ => ascending
+                ? funds.OrderBy(f => f.TotalValue)
+                : funds.OrderByDescending(f => f.TotalValue)
         };
-
-        return sorted.Take(limit).ToList();
+        return ordered.Take(limit).ToList();
     }
 
-    /// <summary>
-    /// Piyasa özetini getir
-    /// </summary>
     public async Task<MarketSummary> GetMarketSummaryAsync(
         FundType fundType = FundType.YAT,
-        DateTime? targetDate = null)
+        DateTime? targetDate = null,
+        CancellationToken cancellationToken = default)
     {
-        var date = targetDate ?? DateHelper.GetLastBusinessDay();
-        var funds = await GetFundsAsync(fundType, date);
+        var funds = await GetFundsAsync(fundType, targetDate, cancellationToken);
+        var summaryDate = targetDate?.Date
+            ?? funds.FirstOrDefault()?.Date
+            ?? (_latestDates.TryGetValue(fundType, out var cached) ? cached : DateHelper.GetLastBusinessDay());
 
         return new MarketSummary
         {
-            Date = date,
+            Date = summaryDate,
             FundType = fundType,
             TotalFunds = funds.Count,
             TotalValue = funds.Sum(f => f.TotalValue),
@@ -270,19 +461,240 @@ public class TefasClient : IAsyncDisposable
         };
     }
 
-    /// <summary>
-    /// Fon ara
-    /// </summary>
     public async Task<List<Fund>> SearchFundsAsync(
         string query,
         FundType fundType = FundType.YAT,
-        DateTime? targetDate = null)
+        DateTime? targetDate = null,
+        CancellationToken cancellationToken = default)
     {
-        var funds = await GetFundsAsync(fundType, targetDate);
-        var q = query.ToUpper();
-
+        var funds = await GetFundsAsync(fundType, targetDate, cancellationToken);
+        var q = query.Trim();
         return funds
-            .Where(f => f.Code.ToUpper().Contains(q) || f.Name.ToUpper().Contains(q))
+            .Where(f => f.Code.Contains(q, StringComparison.OrdinalIgnoreCase) ||
+                        f.Name.Contains(q, StringComparison.OrdinalIgnoreCase))
             .ToList();
+    }
+
+    // ==================== Extended Researched Endpoints ====================
+
+    public async Task<List<string>> GetFundCodesAsync(
+        FundType fundType = FundType.YAT,
+        CancellationToken cancellationToken = default)
+    {
+        var funds = await GetFundsAsync(fundType, null, cancellationToken);
+        return funds.Select(f => f.Code).Where(c => !string.IsNullOrEmpty(c)).ToList();
+    }
+
+    public async Task<FundInfo?> GetFundInfoAsync(
+        string code,
+        string lang = "TR",
+        CancellationToken cancellationToken = default)
+    {
+        var normalized = code.Trim().ToUpperInvariant();
+        if (string.IsNullOrEmpty(normalized))
+            return null;
+
+        using var doc = await CallApiAsync(
+            "fonBilgiGetir",
+            new { fonKodu = normalized, dil = lang },
+            cancellationToken);
+        return MapResultList(doc, DataParser.ParseFundInfo).FirstOrDefault();
+    }
+
+    public async Task<FundProfile?> GetFundProfileAsync(
+        string code,
+        string lang = "TR",
+        CancellationToken cancellationToken = default)
+    {
+        var normalized = code.Trim().ToUpperInvariant();
+        if (string.IsNullOrEmpty(normalized))
+            return null;
+
+        using var doc = await CallApiAsync(
+            "fonProfilBilgiGetir",
+            new { fonKodu = normalized, dil = lang },
+            cancellationToken);
+        return MapResultList(doc, DataParser.ParseFundProfile).FirstOrDefault();
+    }
+
+    public async Task<List<FundPrice>> GetPeriodPriceHistoryAsync(
+        string code,
+        string period = "1",
+        string lang = "TR",
+        CancellationToken cancellationToken = default)
+    {
+        var normalized = code.Trim().ToUpperInvariant();
+        if (string.IsNullOrEmpty(normalized))
+            return new List<FundPrice>();
+
+        using var doc = await CallApiAsync(
+            "fonFiyatBilgiGetir",
+            new { fonKodu = normalized, dil = lang, periyod = period },
+            cancellationToken);
+        return MapResultList(doc, DataParser.ParseFundPrice)
+            .OrderByDescending(p => p.Date)
+            .ToList();
+    }
+
+    public async Task<List<FundSizeInfo>> GetFundSizesAsync(
+        FundType fundType = FundType.YAT,
+        DateTime? startDate = null,
+        DateTime? endDate = null,
+        string code = "",
+        string lang = "TR",
+        CancellationToken cancellationToken = default)
+    {
+        var end = (endDate ?? DateHelper.GetLastBusinessDay()).Date;
+        var start = (startDate ?? end.AddDays(-7)).Date;
+        using var doc = await CallApiAsync(
+            "fonBuyuklukBazliBilgiGetir",
+            new
+            {
+                fonTipi = fundType.ToString(),
+                sFonTurKod = "",
+                fonKod = "",
+                fonGrup = "",
+                fonUnvanTip = "",
+                basTarih = DateHelper.FormatDate(start),
+                bitTarih = DateHelper.FormatDate(end),
+                basSira = 1,
+                bitSira = 100000,
+                dil = lang
+            },
+            cancellationToken);
+
+        var items = MapResultList(doc, DataParser.ParseFundSizeInfo);
+        var normalized = code.Trim().ToUpperInvariant();
+        if (!string.IsNullOrEmpty(normalized))
+            items = items.Where(i => string.Equals(i.Code, normalized, StringComparison.OrdinalIgnoreCase)).ToList();
+        return items;
+    }
+
+    public async Task<List<FundManagementFee>> GetManagementFeesAsync(
+        FundType fundType = FundType.YAT,
+        DateTime? startDate = null,
+        DateTime? endDate = null,
+        string code = "",
+        string lang = "TR",
+        CancellationToken cancellationToken = default)
+    {
+        var end = (endDate ?? DateHelper.GetLastBusinessDay()).Date;
+        var start = (startDate ?? end.AddDays(-7)).Date;
+        using var doc = await CallApiAsync(
+            "fonYonetimBazliBilgiGetir",
+            new
+            {
+                fonTipi = fundType.ToString(),
+                sFonTurKod = "",
+                fonKod = "",
+                fonGrup = "",
+                fonUnvanTip = "",
+                basTarih = DateHelper.FormatDate(start),
+                bitTarih = DateHelper.FormatDate(end),
+                basSira = 1,
+                bitSira = 100000,
+                dil = lang
+            },
+            cancellationToken);
+
+        var items = MapResultList(doc, DataParser.ParseFundManagementFee);
+        var normalized = code.Trim().ToUpperInvariant();
+        if (!string.IsNullOrEmpty(normalized))
+            items = items.Where(i => string.Equals(i.Code, normalized, StringComparison.OrdinalIgnoreCase)).ToList();
+        return items;
+    }
+
+    public async Task<List<FundFounder>> GetFundFoundersAsync(
+        FundType fundType = FundType.YAT,
+        string lang = "TR",
+        CancellationToken cancellationToken = default)
+    {
+        using var doc = await CallApiAsync(
+            "fonKurucuGetir",
+            new { fonTipi = fundType.ToString(), dil = lang },
+            cancellationToken);
+        return MapResultList(doc, DataParser.ParseFundFounder);
+    }
+
+    public async Task<List<FundCategory>> GetFundCategoriesAsync(
+        FundType fundType = FundType.YAT,
+        string lang = "TR",
+        CancellationToken cancellationToken = default)
+    {
+        using var doc = await CallApiAsync(
+            "fonTurGetir",
+            new { fonTipi = fundType.ToString(), dil = lang },
+            cancellationToken);
+        return MapResultList(doc, DataParser.ParseFundCategory);
+    }
+
+    public async Task<List<FundGroup>> GetFundGroupsAsync(
+        FundType fundType = FundType.YAT,
+        string lang = "TR",
+        CancellationToken cancellationToken = default)
+    {
+        using var doc = await CallApiAsync(
+            "fonGrupGetir",
+            new { fonTipi = fundType.ToString(), dil = lang },
+            cancellationToken);
+        return MapResultList(doc, DataParser.ParseFundGroup);
+    }
+
+    public async Task<List<FundNameSearchResult>> SearchFundNamesAsync(
+        string query,
+        FundType fundType = FundType.YAT,
+        string lang = "TR",
+        CancellationToken cancellationToken = default)
+    {
+        var cleaned = query.Trim();
+        if (string.IsNullOrEmpty(cleaned))
+            return new List<FundNameSearchResult>();
+
+        using var doc = await CallApiAsync(
+            "fonUnvanAra",
+            new { aramaMetni = cleaned, fonTipi = fundType.ToString(), dil = lang },
+            cancellationToken);
+        return MapResultList(doc, DataParser.ParseFundNameSearchResult);
+    }
+
+    public async Task<string?> GetFundTypeCodeAsync(
+        string code,
+        CancellationToken cancellationToken = default)
+    {
+        var normalized = code.Trim().ToUpperInvariant();
+        if (string.IsNullOrEmpty(normalized))
+            return null;
+
+        using var doc = await CallApiAsync("fonTipiGetir", new { fonKodu = normalized }, cancellationToken);
+        if (doc.RootElement.TryGetProperty("fonTipi", out var ftEl) && ftEl.ValueKind == JsonValueKind.String)
+            return ftEl.GetString();
+        return null;
+    }
+
+    public async Task<List<Announcement>> GetAnnouncementsAsync(
+        string lang = "TR",
+        CancellationToken cancellationToken = default)
+    {
+        using var doc = await CallApiAsync(
+            "/api/announcements/fonTefasDuyuruGetir",
+            new { dil = lang },
+            cancellationToken);
+        return MapResultList(doc, DataParser.ParseAnnouncement);
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        Dispose();
+        return ValueTask.CompletedTask;
+    }
+
+    public void Dispose()
+    {
+        if (_ownsHttpClient)
+        {
+            _httpClient.Dispose();
+        }
+        _started = false;
+        GC.SuppressFinalize(this);
     }
 }
