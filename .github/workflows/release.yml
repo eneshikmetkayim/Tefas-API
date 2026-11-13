@@ -63,7 +63,7 @@ jobs:
         working-directory: dotnet
         run: |
           dotnet restore
-          dotnet pack Tefas.Api/Tefas.Api.csproj -c Release --no-restore -o ../dist/dotnet
+          dotnet pack Tefas.Api/Tefas.Api.csproj -c Release --no-restore -p:PackageOutputPath="${{ github.workspace }}/dist/dotnet"
 
       - name: Build Java packages (Maven & Gradle)
         working-directory: java
