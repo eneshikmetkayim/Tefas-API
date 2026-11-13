@@ -692,6 +692,12 @@ kbd {
   gap: 8px;
 }
 
+.field-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .field-label {
   font-size: 12px;
   font-weight: 500;

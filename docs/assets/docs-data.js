@@ -925,7 +925,7 @@ for _, a := range anns { fmt.Printf("[%d] %s\\n", a.SequenceNo, a.Title) }`,
       fields: [
         { key: "fonTipi", label: "Fon Piyasası (fonTipi)", kind: "select", options: ["YAT", "EMK", "BYF", "GYF", "GSYF"], defaultValue: "YAT" },
         { key: "fonKodu", label: "Fon Kodu (boş = tümü)", kind: "text", defaultValue: "AAL", placeholder: "AAL, TI1 veya boş" },
-        { key: "basTarih", label: "Başlangıç (YYYYMMDD)", kind: "date", defaultOffsetDays: -3 },
+        { key: "basTarih", label: "Başlangıç (YYYYMMDD)", kind: "date", defaultOffsetDays: -7 },
         { key: "bitTarih", label: "Bitiş (YYYYMMDD)", kind: "date", defaultOffsetDays: 0 },
         { key: "basSira", label: "Başlangıç Sıra", kind: "number", defaultValue: 1 },
         { key: "bitSira", label: "Bitiş Sıra", kind: "number", defaultValue: 50 },
@@ -961,7 +961,7 @@ for _, a := range anns { fmt.Printf("[%d] %s\\n", a.SequenceNo, a.Title) }`,
       fields: [
         { key: "fonTipi", label: "Fon Piyasası (fonTipi)", kind: "select", options: ["YAT", "EMK", "BYF", "GYF", "GSYF"], defaultValue: "YAT" },
         { key: "fonKod", label: "Fon Kodu (fonKod)", kind: "text", defaultValue: "AAL", mirrorTo: "fonKodu", placeholder: "AAL, GTA, TI1" },
-        { key: "basTarih", label: "Başlangıç (YYYYMMDD)", kind: "date", defaultOffsetDays: -3 },
+        { key: "basTarih", label: "Başlangıç (YYYYMMDD)", kind: "date", defaultOffsetDays: -7 },
         { key: "bitTarih", label: "Bitiş (YYYYMMDD)", kind: "date", defaultOffsetDays: 0 },
         { key: "basSira", label: "Başlangıç Sıra", kind: "number", defaultValue: 1 },
         { key: "bitSira", label: "Bitiş Sıra", kind: "number", defaultValue: 50 },
@@ -1256,6 +1256,7 @@ for _, a := range anns { fmt.Printf("[%d] %s\\n", a.SequenceNo, a.Title) }`,
   ],
 
   playground: {
+    defaultWorkerUrl: "https://tefasapi.eneshikmetkayim.workers.dev",
     presets: [
       {
         label: "AAL · Günlük Fiyat",
@@ -1316,7 +1317,9 @@ export default {
       "Access-Control-Allow-Headers": "Content-Type, Accept"
     };
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers });
-    if (pathname === "/health") return Response.json({ ok: true }, { headers });
+    if (pathname === "/" || pathname === "/health") {
+      return Response.json({ ok: true, service: "tefasapi" }, { headers });
+    }
     const target = ALLOWED.get(pathname);
     if (!target || request.method !== "POST") return Response.json({ error: "Not found" }, { status: 404, headers });
 

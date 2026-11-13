@@ -86,3 +86,7 @@ test-results/
 # Rust
 rust/target/
 **/*.rs.bk
+
+# Cloudflare Workers
+.cloudflare/
+.vite/
