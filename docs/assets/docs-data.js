@@ -1,11 +1,11 @@
 window.TEFAS_DOCS = {
   languages: [
-    { id: "python", label: "Python", badge: "Python 3.10+" },
-    { id: "javascript", label: "TypeScript / JS", badge: "Node 20+" },
-    { id: "go", label: "Go", badge: "Go 1.22+" },
-    { id: "dotnet", label: "C# / .NET", badge: ".NET 8.0" },
-    { id: "java", label: "Java", badge: "JDK 21" },
-    { id: "rust", label: "Rust", badge: "2021 Edition" }
+    { id: "python", label: "Python", shortLabel: "Python", badge: "Python 3.10+" },
+    { id: "javascript", label: "TypeScript / JS", shortLabel: "TS/JS", badge: "Node 20+" },
+    { id: "go", label: "Go", shortLabel: "Go", badge: "Go 1.22+" },
+    { id: "dotnet", label: "C# / .NET", shortLabel: "C#", badge: ".NET 8.0" },
+    { id: "java", label: "Java", shortLabel: "Java", badge: "JDK 21" },
+    { id: "rust", label: "Rust", shortLabel: "Rust", badge: "2021 Edition" }
   ],
 
   stats: [
@@ -917,83 +917,426 @@ for _, a := range anns { fmt.Printf("[%d] %s\\n", a.SequenceNo, a.Title) }`,
   httpEndpoints: [
     {
       path: "/api/funds/fonGnlBlgSiraliGetir",
+      title: "Günlük Fon Fiyatları & Piyasa Listesi",
+      group: "Temel Veri",
       usedBy: "getFunds, getFund, getPriceHistory, getTopFunds, getMarketSummary, searchFunds, getFundCodes",
       body: '{"fonTipi":"YAT","fonKodu":"AAL","basTarih":"20261110","bitTarih":"20261110","basSira":1,"bitSira":100000,"dil":"TR"}',
-      notes: "1 aylık tarih sınırı vardır. EMK'da tedPaySayisi ondalıklı, BYF'de borsaBultenFiyat dolu olabilir."
+      notes: "1 aylık tarih sınırı vardır. EMK'da tedPaySayisi ondalıklı, BYF'de borsaBultenFiyat dolu olabilir.",
+      fields: [
+        { key: "fonTipi", label: "Fon Piyasası (fonTipi)", kind: "select", options: ["YAT", "EMK", "BYF", "GYF", "GSYF"], defaultValue: "YAT" },
+        { key: "fonKodu", label: "Fon Kodu (boş = tümü)", kind: "text", defaultValue: "AAL", placeholder: "AAL, TI1 veya boş" },
+        { key: "basTarih", label: "Başlangıç (YYYYMMDD)", kind: "date", defaultOffsetDays: -3 },
+        { key: "bitTarih", label: "Bitiş (YYYYMMDD)", kind: "date", defaultOffsetDays: 0 },
+        { key: "basSira", label: "Başlangıç Sıra", kind: "number", defaultValue: 1 },
+        { key: "bitSira", label: "Bitiş Sıra", kind: "number", defaultValue: 50 },
+        { key: "dil", label: "Dil (dil)", kind: "select", options: ["TR", "EN"], defaultValue: "TR" }
+      ],
+      sampleResponse: {
+        errorCode: null,
+        errorMessage: null,
+        resultList: [
+          {
+            fonKodu: "AAL",
+            fonUnvan: "ATA PORTFÖY PARA PİYASASI (TL) FONU",
+            tarih: "2026-11-10",
+            fiyat: 3.777852,
+            tedPaySayisi: 453900688,
+            kisiSayisi: 4164,
+            portfoyBuyukluk: 1714769704.17,
+            borsaBultenFiyat: null,
+            rn: 1
+          }
+        ],
+        toplamSayi: 1,
+        toplamSayfa: 1
+      }
     },
     {
       path: "/api/funds/dagilimSiraliGetirT",
+      title: "Portföy Varlık Dağılımı",
+      group: "Temel Veri",
       usedBy: "getAllocation",
       body: '{"fonTipi":"YAT","fonKod":"AAL","fonKodu":"AAL","basTarih":"20261110","bitTarih":"20261110","basSira":1,"bitSira":100000,"dil":"TR"}',
-      notes: "Filtre için fonKod alanını bekler. 22 küçük harfli varlık kodu döndürür."
+      notes: "Filtre için fonKod alanını bekler. 22 küçük harfli varlık kodu döndürür.",
+      fields: [
+        { key: "fonTipi", label: "Fon Piyasası (fonTipi)", kind: "select", options: ["YAT", "EMK", "BYF", "GYF", "GSYF"], defaultValue: "YAT" },
+        { key: "fonKod", label: "Fon Kodu (fonKod)", kind: "text", defaultValue: "AAL", mirrorTo: "fonKodu", placeholder: "AAL, GTA, TI1" },
+        { key: "basTarih", label: "Başlangıç (YYYYMMDD)", kind: "date", defaultOffsetDays: -3 },
+        { key: "bitTarih", label: "Bitiş (YYYYMMDD)", kind: "date", defaultOffsetDays: 0 },
+        { key: "basSira", label: "Başlangıç Sıra", kind: "number", defaultValue: 1 },
+        { key: "bitSira", label: "Bitiş Sıra", kind: "number", defaultValue: 50 },
+        { key: "dil", label: "Dil (dil)", kind: "select", options: ["TR", "EN"], defaultValue: "TR" }
+      ],
+      sampleResponse: {
+        errorCode: null,
+        errorMessage: null,
+        resultList: [
+          {
+            fonKodu: "AAL",
+            fonUnvan: "ATA PORTFÖY PARA PİYASASI (TL) FONU",
+            tarih: "2026-11-10",
+            hs: 42.5,
+            dt: 10.0,
+            ost: 2.0,
+            eut: 5.0,
+            tr: 2.5,
+            tpp: 1.5,
+            vdm: 20.0,
+            vm: 10.0,
+            byf: 3.5,
+            yhs: 1.0,
+            yba: 1.0,
+            d: 1.0
+          }
+        ],
+        toplamSayi: 1,
+        toplamSayfa: 1
+      }
     },
     {
       path: "/api/funds/fonBilgiGetir",
+      title: "Tekil Fon Özeti & Kategori Sırası",
+      group: "Analiz & Geçmiş",
       usedBy: "getFundInfo",
       body: '{"fonKodu":"AAL","dil":"TR"}',
-      notes: "sonFiyat, gunlukGetiri, pazarPayi, fonKategori, kategoriDerece, kategoriFonSay."
+      notes: "sonFiyat, gunlukGetiri, pazarPayi, fonKategori, kategoriDerece, kategoriFonSay.",
+      fields: [
+        { key: "fonKodu", label: "Fon Kodu (fonKodu)", kind: "text", defaultValue: "AAL", placeholder: "AAL, TI1, AFT" },
+        { key: "dil", label: "Dil (dil)", kind: "select", options: ["TR", "EN"], defaultValue: "TR" }
+      ],
+      sampleResponse: {
+        errorCode: null,
+        errorMessage: null,
+        resultList: [
+          {
+            fonKodu: "AAL",
+            fonUnvan: "ATA PORTFÖY PARA PİYASASI (TL) FONU",
+            tarih: "2026-11-10",
+            sonFiyat: 3.777852,
+            gunlukGetiri: 0.145,
+            tedPaySayisi: 453900688,
+            toplamDeger: 1714769704.17,
+            kisiSayisi: 4164,
+            fonKategori: "Para Piyasası Fonları",
+            kategoriDerece: 15,
+            kategoriFonSay: 92,
+            pazarPayi: 0.28
+          }
+        ]
+      }
     },
     {
       path: "/api/funds/fonProfilBilgiGetir",
+      title: "Fon Profili (ISIN, Valör, Risk)",
+      group: "Analiz & Geçmiş",
       usedBy: "getFundProfile",
       body: '{"fonKodu":"AAL","dil":"TR"}',
-      notes: "ISIN, işlem saatleri, alt/üst limitler, valör, KAP linki ve risk seviyesi."
+      notes: "ISIN, işlem saatleri, alt/üst limitler, valör, KAP linki ve risk seviyesi.",
+      fields: [
+        { key: "fonKodu", label: "Fon Kodu (fonKodu)", kind: "text", defaultValue: "AAL", placeholder: "AAL, TI1, AFT" },
+        { key: "dil", label: "Dil (dil)", kind: "select", options: ["TR", "EN"], defaultValue: "TR" }
+      ],
+      sampleResponse: {
+        errorCode: null,
+        errorMessage: null,
+        resultList: [
+          {
+            isinKod: "TRYATAP00018",
+            sonIslemSaati: "13:30",
+            minAlis: 1,
+            maxAlis: 0,
+            minSatis: 1,
+            maxSatis: 0,
+            fonAlisValor: 0,
+            fonSatisValor: 0,
+            tefasIslemDurumu: "İşlem Görüyor",
+            kapLink: "https://www.kap.org.tr/tr/fon-bilgileri/ozet/AAL",
+            riskDegeri: "1"
+          }
+        ]
+      }
     },
     {
       path: "/api/funds/fonFiyatBilgiGetir",
+      title: "Periyot Bazlı Fiyat Serisi (1–60 Ay)",
+      group: "Analiz & Geçmiş",
       usedBy: "getPeriodPriceHistory",
       body: '{"fonKodu":"AAL","dil":"TR","periyod":"12"}',
-      notes: "Desteklenen periyodlar: '1', '3', '6', '12', '36', '60'."
+      notes: "Desteklenen periyodlar: '1', '3', '6', '12', '36', '60'.",
+      fields: [
+        { key: "fonKodu", label: "Fon Kodu (fonKodu)", kind: "text", defaultValue: "AAL", placeholder: "AAL, TI1, AFT" },
+        { key: "periyod", label: "Periyot (Ay)", kind: "select", options: ["1", "3", "6", "12", "36", "60"], defaultValue: "1" },
+        { key: "dil", label: "Dil (dil)", kind: "select", options: ["TR", "EN"], defaultValue: "TR" }
+      ],
+      sampleResponse: {
+        errorCode: null,
+        errorMessage: null,
+        resultList: [
+          { tarih: "2026-10-12", fiyat: 3.660124 },
+          { tarih: "2026-11-10", fiyat: 3.777852 }
+        ]
+      }
     },
     {
       path: "/api/funds/fonBuyuklukBazliBilgiGetir",
+      title: "Büyüklük & Pay Değişimi",
+      group: "Analiz & Geçmiş",
       usedBy: "getFundSizes",
       body: '{"fonTipi":"YAT","fonKod":"","basTarih":"20261105","bitTarih":"20261112","basSira":1,"bitSira":100000,"dil":"TR"}',
-      notes: "Tarih aralığında portföy büyüklüğü ve pay adedi değişim yüzdeleri."
+      notes: "Tarih aralığında portföy büyüklüğü ve pay adedi değişim yüzdeleri.",
+      fields: [
+        { key: "fonTipi", label: "Fon Piyasası (fonTipi)", kind: "select", options: ["YAT", "EMK", "BYF", "GYF", "GSYF"], defaultValue: "YAT" },
+        { key: "fonKod", label: "Fon Kodu (boş = tümü)", kind: "text", defaultValue: "HAI", placeholder: "HAI veya boş" },
+        { key: "basTarih", label: "Başlangıç (YYYYMMDD)", kind: "date", defaultOffsetDays: -7 },
+        { key: "bitTarih", label: "Bitiş (YYYYMMDD)", kind: "date", defaultOffsetDays: 0 },
+        { key: "basSira", label: "Başlangıç Sıra", kind: "number", defaultValue: 1 },
+        { key: "bitSira", label: "Bitiş Sıra", kind: "number", defaultValue: 25 },
+        { key: "dil", label: "Dil (dil)", kind: "select", options: ["TR", "EN"], defaultValue: "TR" }
+      ],
+      sampleResponse: {
+        errorCode: null,
+        errorMessage: null,
+        resultList: [
+          {
+            fonKodu: "HAI",
+            fonUnvan: "AHLATCI PORTFÖY ALTIN FONU",
+            fonTurAciklama: "Altın Fonu",
+            ilkPortfoyDegeri: 10379430.16,
+            sonPortfoyDegeri: 10536464.41,
+            portBuyuklukDegisim: 1.51,
+            payAdetDegisim: 0.89,
+            netGetiriOrani: 0.62
+          }
+        ]
+      }
     },
     {
       path: "/api/funds/fonYonetimBazliBilgiGetir",
+      title: "Yönetim Ücretleri & Gider Sınırı",
+      group: "Analiz & Geçmiş",
       usedBy: "getManagementFees",
       body: '{"fonTipi":"YAT","fonKod":"","basTarih":"20261105","bitTarih":"20261112","basSira":1,"bitSira":100000,"dil":"TR"}',
-      notes: "uygulananYu1Y, fonIcTuzukYu1G, fonTopGiderKesoran değerleri virgüllü string gelebilir."
+      notes: "uygulananYu1Y, fonIcTuzukYu1G, fonTopGiderKesoran değerleri virgüllü string gelebilir.",
+      fields: [
+        { key: "fonTipi", label: "Fon Piyasası (fonTipi)", kind: "select", options: ["YAT", "EMK", "BYF", "GYF", "GSYF"], defaultValue: "YAT" },
+        { key: "fonKod", label: "Fon Kodu (boş = tümü)", kind: "text", defaultValue: "HAI", placeholder: "HAI veya boş" },
+        { key: "basTarih", label: "Başlangıç (YYYYMMDD)", kind: "date", defaultOffsetDays: -7 },
+        { key: "bitTarih", label: "Bitiş (YYYYMMDD)", kind: "date", defaultOffsetDays: 0 },
+        { key: "basSira", label: "Başlangıç Sıra", kind: "number", defaultValue: 1 },
+        { key: "bitSira", label: "Bitiş Sıra", kind: "number", defaultValue: 25 },
+        { key: "dil", label: "Dil (dil)", kind: "select", options: ["TR", "EN"], defaultValue: "TR" }
+      ],
+      sampleResponse: {
+        errorCode: null,
+        errorMessage: null,
+        resultList: [
+          {
+            fonKodu: "HAI",
+            fonUnvan: "AHLATCI PORTFÖY ALTIN FONU",
+            fonTurAciklama: "Kıymetli Madenler Şemsiye Fonu",
+            uygulananYu1Y: "1,8",
+            fonIcTuzukYu1G: "2,04",
+            fonTopGiderKesoran: "2,19"
+          }
+        ]
+      }
     },
     {
       path: "/api/funds/fonKurucuGetir",
+      title: "Kurucu / Portföy Yönetim Şirketleri",
+      group: "Referans & Duyuru",
       usedBy: "getFundFounders",
       body: '{"fonTipi":"YAT","dil":"TR"}',
-      notes: "kurucuKodu, kurucuUnvan, fonTipi listesi."
+      notes: "kurucuKodu, kurucuUnvan, fonTipi listesi.",
+      fields: [
+        { key: "fonTipi", label: "Fon Piyasası (fonTipi)", kind: "select", options: ["YAT", "EMK", "BYF", "GYF", "GSYF"], defaultValue: "YAT" },
+        { key: "dil", label: "Dil (dil)", kind: "select", options: ["TR", "EN"], defaultValue: "TR" }
+      ],
+      sampleResponse: {
+        errorCode: null,
+        errorMessage: null,
+        resultList: [
+          { kurucuKodu: "LAT", kurucuUnvan: "AHLATCI PORTFÖY YÖNETİMİ ANONİM ŞİRKETİ", fonTipi: "F" }
+        ]
+      }
     },
     {
       path: "/api/funds/fonTurGetir",
+      title: "Şemsiye Fon Türleri",
+      group: "Referans & Duyuru",
       usedBy: "getFundCategories",
       body: '{"fonTipi":"YAT","dil":"TR"}',
-      notes: "sfonTuru ve sfonTurAciklama şemsiye fon listesi."
+      notes: "sfonTuru ve sfonTurAciklama şemsiye fon listesi.",
+      fields: [
+        { key: "fonTipi", label: "Fon Piyasası (fonTipi)", kind: "select", options: ["YAT", "EMK", "BYF", "GYF", "GSYF"], defaultValue: "YAT" },
+        { key: "dil", label: "Dil (dil)", kind: "select", options: ["TR", "EN"], defaultValue: "TR" }
+      ],
+      sampleResponse: {
+        errorCode: null,
+        errorMessage: null,
+        resultList: [
+          { sfonTuru: "37", sfonTurAciklama: "Kıymetli Madenler Şemsiye Fonu" },
+          { sfonTuru: "100", sfonTurAciklama: "Borçlanma Araçları Şemsiye Fonu" }
+        ]
+      }
     },
     {
       path: "/api/funds/fonGrupGetir",
+      title: "Fon Grupları",
+      group: "Referans & Duyuru",
       usedBy: "getFundGroups",
       body: '{"fonTipi":"YAT","dil":"TR"}',
-      notes: "fonGrubu ve fongrupaciklama listesi."
+      notes: "fonGrubu ve fongrupaciklama listesi.",
+      fields: [
+        { key: "fonTipi", label: "Fon Piyasası (fonTipi)", kind: "select", options: ["YAT", "EMK", "BYF", "GYF", "GSYF"], defaultValue: "YAT" },
+        { key: "dil", label: "Dil (dil)", kind: "select", options: ["TR", "EN"], defaultValue: "TR" }
+      ],
+      sampleResponse: {
+        errorCode: null,
+        errorMessage: null,
+        resultList: [
+          { fonGrubu: "1", fongrupaciklama: "Borçlanma Araçları" }
+        ]
+      }
     },
     {
       path: "/api/funds/fonUnvanAra",
+      title: "Sunucu Taraflı Ünvan Arama",
+      group: "Referans & Duyuru",
       usedBy: "searchFundNames",
       body: '{"aramaMetni":"PARA","fonTipi":"YAT","dil":"TR"}',
-      notes: "Hızlı sunucu tarafı arama; fonKodu ve fonUnvan döner."
+      notes: "Hızlı sunucu tarafı arama; fonKodu ve fonUnvan döner.",
+      fields: [
+        { key: "aramaMetni", label: "Arama Metni (aramaMetni)", kind: "text", defaultValue: "PARA", placeholder: "PARA, ALTIN, HISSE" },
+        { key: "fonTipi", label: "Fon Piyasası (fonTipi)", kind: "select", options: ["YAT", "EMK", "BYF", "GYF", "GSYF"], defaultValue: "YAT" },
+        { key: "dil", label: "Dil (dil)", kind: "select", options: ["TR", "EN"], defaultValue: "TR" }
+      ],
+      sampleResponse: {
+        errorCode: null,
+        errorMessage: null,
+        resultList: [
+          { fonKodu: "AAL", fonUnvan: "ATA PORTFÖY PARA PİYASASI (TL) FONU" }
+        ]
+      }
     },
     {
       path: "/api/funds/fonTipiGetir",
+      title: "Dahili Fon Tipi Kodu",
+      group: "Referans & Duyuru",
       usedBy: "getFundTypeCode",
       body: '{"fonKodu":"AAL"}',
-      notes: "resultList yerine doğrudan kök nesnede fonTipi ('F', 'E') döner."
+      notes: "resultList yerine doğrudan kök nesnede fonTipi ('F', 'E') döner.",
+      fields: [
+        { key: "fonKodu", label: "Fon Kodu (fonKodu)", kind: "text", defaultValue: "AAL", placeholder: "AAL, TI1" }
+      ],
+      sampleResponse: { errorCode: null, errorMessage: null, fonTipi: "F" }
     },
     {
       path: "/api/announcements/fonTefasDuyuruGetir",
+      title: "TEFAS Resmi Duyuruları",
+      group: "Referans & Duyuru",
       usedBy: "getAnnouncements",
       body: '{"dil":"TR"}',
-      notes: "Resmi TEFAS duyuru başlıkları ve KAP HTML bağlantıları."
+      notes: "Resmi TEFAS duyuru başlıkları ve KAP HTML bağlantıları.",
+      fields: [
+        { key: "dil", label: "Dil (dil)", kind: "select", options: ["TR", "EN"], defaultValue: "TR" }
+      ],
+      sampleResponse: {
+        errorCode: null,
+        errorMessage: null,
+        resultList: [
+          {
+            duyuruBaslik: "HNC ve HGM Fon Birleşim (Hedef Portföy Yönetimi A.Ş.)",
+            siraNo: 299,
+            duyuruDetay: '<a href="https://www.kap.org.tr/tr/Bildirim/1635291" target="_blank">Duyuru detayı için tıklayınız</a>'
+          }
+        ]
+      }
     }
   ],
+
+  playground: {
+    presets: [
+      {
+        label: "AAL · Günlük Fiyat",
+        path: "/api/funds/fonGnlBlgSiraliGetir",
+        values: { fonTipi: "YAT", fonKodu: "AAL", basSira: 1, bitSira: 25, dil: "TR" }
+      },
+      {
+        label: "TI1 · Varlık Dağılımı",
+        path: "/api/funds/dagilimSiraliGetirT",
+        values: { fonTipi: "YAT", fonKod: "TI1", fonKodu: "TI1", basSira: 1, bitSira: 25, dil: "TR" }
+      },
+      {
+        label: "AFT · Tekil Fon Özeti",
+        path: "/api/funds/fonBilgiGetir",
+        values: { fonKodu: "AFT", dil: "TR" }
+      },
+      {
+        label: "12 Aylık Seri",
+        path: "/api/funds/fonFiyatBilgiGetir",
+        values: { fonKodu: "AAL", periyod: "12", dil: "TR" }
+      },
+      {
+        label: "Kurucular (YAT)",
+        path: "/api/funds/fonKurucuGetir",
+        values: { fonTipi: "YAT", dil: "TR" }
+      },
+      {
+        label: "Güncel Duyurular",
+        path: "/api/announcements/fonTefasDuyuruGetir",
+        values: { dil: "TR" }
+      }
+    ],
+    localProxyCommand: "python scripts/tefas_proxy.py",
+    workerTemplate: `const ALLOWED = new Map([
+  ["/api/funds/fonGnlBlgSiraliGetir", "https://www.tefas.gov.tr/api/funds/fonGnlBlgSiraliGetir"],
+  ["/api/funds/dagilimSiraliGetirT", "https://www.tefas.gov.tr/api/funds/dagilimSiraliGetirT"],
+  ["/api/funds/fonBilgiGetir", "https://www.tefas.gov.tr/api/funds/fonBilgiGetir"],
+  ["/api/funds/fonProfilBilgiGetir", "https://www.tefas.gov.tr/api/funds/fonProfilBilgiGetir"],
+  ["/api/funds/fonFiyatBilgiGetir", "https://www.tefas.gov.tr/api/funds/fonFiyatBilgiGetir"],
+  ["/api/funds/fonBuyuklukBazliBilgiGetir", "https://www.tefas.gov.tr/api/funds/fonBuyuklukBazliBilgiGetir"],
+  ["/api/funds/fonYonetimBazliBilgiGetir", "https://www.tefas.gov.tr/api/funds/fonYonetimBazliBilgiGetir"],
+  ["/api/funds/fonKurucuGetir", "https://www.tefas.gov.tr/api/funds/fonKurucuGetir"],
+  ["/api/funds/fonTurGetir", "https://www.tefas.gov.tr/api/funds/fonTurGetir"],
+  ["/api/funds/fonGrupGetir", "https://www.tefas.gov.tr/api/funds/fonGrupGetir"],
+  ["/api/funds/fonUnvanAra", "https://www.tefas.gov.tr/api/funds/fonUnvanAra"],
+  ["/api/funds/fonTipiGetir", "https://www.tefas.gov.tr/api/funds/fonTipiGetir"],
+  ["/api/announcements/fonTefasDuyuruGetir", "https://www.tefas.gov.tr/api/announcements/fonTefasDuyuruGetir"]
+]);
+const ORIGIN = "https://eneshikmetkayim.github.io";
+
+export default {
+  async fetch(request) {
+    const { pathname } = new URL(request.url);
+    const headers = {
+      "Access-Control-Allow-Origin": ORIGIN,
+      "Vary": "Origin",
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Accept"
+    };
+    if (request.method === "OPTIONS") return new Response(null, { status: 204, headers });
+    if (pathname === "/health") return Response.json({ ok: true }, { headers });
+    const target = ALLOWED.get(pathname);
+    if (!target || request.method !== "POST") return Response.json({ error: "Not found" }, { status: 404, headers });
+
+    const upstream = await fetch(target, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "Origin": "https://www.tefas.gov.tr",
+        "Referer": "https://www.tefas.gov.tr/tr/fon-karsilastirma"
+      },
+      body: await request.text()
+    });
+    return new Response(await upstream.text(), {
+      status: upstream.status,
+      headers: { ...headers, "Content-Type": "application/json; charset=utf-8" }
+    });
+  }
+};`
+  },
 
   allocationFields: [
     { modelField: "stock", rawKeys: "hs", desc: "Hisse Senedi (%)" },

@@ -1,34 +1,70 @@
 <!DOCTYPE html>
-<html lang="tr" data-theme="dark">
+<html lang="tr" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TEFAS API Docs — 6 Dilde Pure-HTTP Dokümantasyonu</title>
-  <meta name="description" content="TEFAS (Türkiye Elektronik Fon Alım Satım Platformu) için Python, TypeScript/JS, Go, C#/.NET, Java ve Rust dillerinde Pure-HTTP API istemci dokümantasyonu. 19 metot ve 12 doğrulanmış HTTP endpoint referansı.">
+  <title>Tefas-API — Dokümantasyon ve API Playground</title>
+  <meta name="description" content="TEFAS için Python, TypeScript/JS, Go, C#/.NET, Java ve Rust dillerinde Pure-HTTP API dokümantasyonu: 19 metot, 13 doğrulanmış HTTP endpoint referansı ve etkileşimli API Playground.">
   <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
   <header class="topbar">
     <div class="topbar-inner">
       <div class="brand-group">
-        <button id="menu-toggle" class="icon-btn mobile-only" type="button" aria-label="Menüyü aç/kapat">☰</button>
-        <a class="brand" href="#overview">
-          <span class="brand-badge">TEFAS</span>
-          <span class="brand-title">API Dokümantasyonu</span>
+        <button id="menu-toggle" class="btn btn-outline btn-icon mobile-only" type="button" aria-label="Menüyü aç veya kapat">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="4" y1="6" x2="20" y2="6"></line>
+            <line x1="4" y1="12" x2="20" y2="12"></line>
+            <line x1="4" y1="18" x2="20" y2="18"></line>
+          </svg>
+        </button>
+
+        <a class="wordmark" href="#overview">
+          <span class="wordmark-main">Tefas-API</span>
+          <span class="wordmark-sep" aria-hidden="true">/</span>
+          <span class="wordmark-sub">Dokümantasyon</span>
         </a>
-        <span class="version-pill">v1.0.0 · Pure-HTTP</span>
+
+        <nav class="topnav" aria-label="Üst menü">
+          <a href="#playground">Playground</a>
+          <a href="#quickstart">Kurulum</a>
+          <a href="#method-matrix">Matris</a>
+          <a href="#methods">Metotlar</a>
+          <a href="#http-reference">HTTP</a>
+        </nav>
       </div>
 
       <div class="topbar-controls">
-        <div class="search-wrap">
-          <input id="search-input" type="search" placeholder="Metot, endpoint veya alan ara… ( / )" aria-label="Dokümantasyonda ara">
-          <span id="search-count" class="search-count" hidden></span>
-        </div>
+        <button id="cmd-trigger" class="cmd-trigger" type="button" aria-label="Dokümantasyonda ara">
+          <span class="cmd-trigger-left">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <span>Ara…</span>
+          </span>
+          <kbd>Ctrl K</kbd>
+        </button>
 
-        <div id="global-lang-bar" class="lang-switcher" role="group" aria-label="Varsayılan programlama dili"></div>
+        <div id="global-lang-bar" class="segmented" role="group" aria-label="Varsayılan programlama dili"></div>
 
-        <button id="theme-toggle" class="icon-btn" type="button" title="Tema değiştir (Koyu / Açık)" aria-label="Tema değiştir">☀️</button>
-        <a class="repo-link" href="https://github.com/eneshikmetkayim/Tefas-API" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+        <button id="theme-toggle" class="btn btn-outline btn-icon" type="button" title="Tema değiştir (Açık / Koyu)" aria-label="Tema değiştir">
+          <svg id="theme-icon-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="4"></circle>
+            <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path>
+          </svg>
+          <svg id="theme-icon-moon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>
+          </svg>
+        </button>
+
+        <a class="btn btn-outline btn-sm repo-link" href="https://github.com/eneshikmetkayim/Tefas-API" target="_blank" rel="noopener noreferrer">
+          <span>GitHub</span>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M7 17 17 7"></path>
+            <path d="M7 7h10v10"></path>
+          </svg>
+        </a>
       </div>
     </div>
   </header>
@@ -39,36 +75,158 @@
     </aside>
 
     <main id="main-content" class="content">
-      <section id="overview" class="hero card">
-        <div class="hero-badges">
-          <span class="pill pill-accent">Pure HTTP · Zero Browser</span>
-          <span class="pill">6 Programlama Dili</span>
-          <span class="pill">19 İstemci Metodu</span>
-          <span class="pill">13 TEFAS Endpoint</span>
-          <span class="pill">5 Fon Piyasası</span>
+      <section id="overview" class="hero">
+        <div class="eyebrow-row">
+          <span class="badge badge-secondary">v1.0.0</span>
+          <span class="badge badge-outline">Pure-HTTP</span>
+          <span class="badge badge-outline">Tarayıcı Bağımlılığı Yok</span>
         </div>
         <h1>TEFAS Pure-HTTP API İstemcisi</h1>
         <p class="hero-lead">
-          Türkiye Elektronik Fon Alım Satım Platformu (<strong>TEFAS</strong>) verilerine tarayıcı otomasyonu
-          (Playwright/Chromium) olmadan, doğrudan resmi JSON uç noktalarına <code>POST</code> istekleriyle erişen
-          <strong>Python</strong>, <strong>TypeScript / JavaScript</strong>, <strong>Go</strong>,
-          <strong>C# / .NET</strong>, <strong>Java</strong> ve <strong>Rust</strong> kütüphanelerinin eksiksiz teknik referansı.
+          Türkiye Elektronik Fon Alım Satım Platformu (TEFAS) uç noktalarına doğrudan <code>POST</code>
+          JSON istekleriyle erişen Python, TypeScript/JS, Go, C#/.NET, Java ve Rust istemcileri için
+          teknik referans ve etkileşimli deneme alanı.
         </p>
-        <div class="hero-stats" id="hero-stats"></div>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="#playground">API Playground'u Aç</a>
+          <a class="btn btn-outline" href="#quickstart">Kurulum Kılavuzu</a>
+          <a class="btn btn-ghost" href="#methods">19 Metot Referansı</a>
+        </div>
+        <div class="stat-grid" id="hero-stats"></div>
+      </section>
+
+      <section id="playground" class="doc-section">
+        <div class="section-header section-header-row">
+          <div>
+            <h2>Etkileşimli API Playground</h2>
+            <p>13 doğrulanmış TEFAS uç noktası için parametreleri düzenleyin, canlı proxy veya örnek şema üzerinden yanıtı inceleyin.</p>
+          </div>
+          <span id="pg-connection-badge" class="badge badge-outline">Kontrol ediliyor…</span>
+        </div>
+
+        <div class="card pg-shell">
+          <div class="pg-toolbar">
+            <div class="pg-presets" id="pg-presets" role="group" aria-label="Hızlı test örnekleri"></div>
+            <div class="pg-mode-wrap">
+              <label class="sr-only" for="pg-mode-select">Çalıştırma Modu</label>
+              <select id="pg-mode-select" class="input select-sm">
+                <option value="live-proxy">Canlı İstek (Proxy / Yerel)</option>
+                <option value="live-direct">Canlı İstek (Doğrudan tefas.gov.tr)</option>
+                <option value="demo">Doğrulanmış Örnek Yanıt (Offline)</option>
+              </select>
+              <button id="pg-send-btn" class="btn btn-primary btn-sm" type="button">İstek Gönder</button>
+            </div>
+          </div>
+
+          <div class="pg-grid">
+            <div class="pg-pane">
+              <div class="field-group">
+                <label class="field-label" for="pg-endpoint-select">HTTP Uç Noktası (POST)</label>
+                <select id="pg-endpoint-select" class="input"></select>
+                <p id="pg-endpoint-note" class="field-hint"></p>
+              </div>
+
+              <div class="field-group" id="pg-proxy-row">
+                <div class="field-label-row">
+                  <label class="field-label" for="pg-proxy-input">Proxy / Cloudflare Worker URL</label>
+                  <button id="pg-proxy-check-btn" class="btn btn-ghost btn-xs" type="button">Bağlantıyı Test Et</button>
+                </div>
+                <input id="pg-proxy-input" class="input mono-input" type="url" placeholder="http://127.0.0.1:8787 veya https://tefas-proxy.kullanici.workers.dev">
+                <p id="pg-proxy-hint" class="field-hint"></p>
+              </div>
+
+              <div class="tabs-bar" id="pg-req-tabs" role="tablist">
+                <button class="tab-trigger active" type="button" data-pg-req-tab="form">Form Alanları</button>
+                <button class="tab-trigger" type="button" data-pg-req-tab="json">Ham JSON Gövde</button>
+              </div>
+
+              <div id="pg-form-panel" class="pg-form-grid"></div>
+              <div id="pg-json-panel" hidden>
+                <label class="sr-only" for="pg-json-textarea">İstek JSON Gövdesi</label>
+                <textarea id="pg-json-textarea" class="textarea mono-input" rows="8" spellcheck="false"></textarea>
+                <p id="pg-json-error" class="field-error" hidden></p>
+              </div>
+            </div>
+
+            <div class="pg-pane pg-pane-response">
+              <div class="pg-resp-meta">
+                <div class="pg-resp-badges">
+                  <span id="pg-status-badge" class="badge badge-secondary">Hazır</span>
+                  <span id="pg-latency-badge" class="badge badge-outline">— ms</span>
+                  <span id="pg-count-badge" class="badge badge-outline">— kayıt</span>
+                </div>
+                <div class="pg-resp-actions">
+                  <div class="tabs-bar tabs-compact" id="pg-resp-tabs" role="tablist">
+                    <button class="tab-trigger active" type="button" data-pg-resp-tab="table">Tablo</button>
+                    <button class="tab-trigger" type="button" data-pg-resp-tab="json">JSON</button>
+                    <button class="tab-trigger" type="button" data-pg-resp-tab="code">Kod</button>
+                  </div>
+                  <button id="pg-copy-resp-btn" class="btn btn-outline btn-xs" type="button">Kopyala</button>
+                </div>
+              </div>
+
+              <div id="pg-alert-box" class="alert" hidden></div>
+
+              <div id="pg-resp-table-wrap" class="pg-resp-surface"></div>
+              <div id="pg-resp-json-wrap" class="pg-resp-surface" hidden>
+                <pre class="code-pre"><code id="pg-resp-json-code"></code></pre>
+              </div>
+              <div id="pg-resp-code-wrap" class="pg-resp-surface" hidden>
+                <div class="pg-code-kind-bar">
+                  <button class="btn btn-outline btn-xs active" type="button" data-pg-code-kind="curl">cURL</button>
+                  <button class="btn btn-outline btn-xs" type="button" data-pg-code-kind="sdk">Aktif Dil SDK</button>
+                </div>
+                <pre class="code-pre"><code id="pg-resp-code-text"></code></pre>
+              </div>
+            </div>
+          </div>
+
+          <details class="accordion-sub" id="pg-cors-guide">
+            <summary class="accordion-sub-summary">
+              <span>Tarayıcı CORS Kısıtlaması ve 1 Dakikada Canlı Proxy Kurulumu (Python / Cloudflare Worker)</span>
+              <span class="badge badge-outline">İsteğe Bağlı</span>
+            </summary>
+            <div class="accordion-sub-body">
+              <p class="muted-text">
+                TEFAS sunucusu (<code>www.tefas.gov.tr</code>) <code>Access-Control-Allow-Origin</code> başlığı göndermediği için
+                GitHub Pages gibi farklı bir alandan doğrudan tarayıcı <code>fetch()</code> çağrısı CORS engeline takılır.
+                Gerçek canlı veri denemek için aşağıdaki iki sıfır-maliyetli yoldan birini kullanabilirsiniz:
+              </p>
+              <div class="proxy-guide-grid">
+                <div class="card card-muted">
+                  <div class="card-head-compact">
+                    <strong>1. Yerel Python Relay (Sıfır Bağımlılık)</strong>
+                    <button id="copy-local-proxy-btn" class="btn btn-outline btn-xs" type="button">Komutu Kopyala</button>
+                  </div>
+                  <p class="muted-text-sm">Docs sitesini ve aynı-köken (same-origin) TEFAS proxy'sini <code>http://127.0.0.1:8787</code> adresinde başlatır.</p>
+                  <pre class="code-pre"><code id="local-proxy-cmd"></code></pre>
+                </div>
+                <div class="card card-muted">
+                  <div class="card-head-compact">
+                    <strong>2. Ücretsiz Cloudflare Worker (Her Yerden Canlı)</strong>
+                    <button id="copy-worker-btn" class="btn btn-outline btn-xs" type="button">Kodu Kopyala</button>
+                  </div>
+                  <p class="muted-text-sm">Tek dosya Worker oluşturup URL'yi yukarıdaki Proxy alanına yapıştırırsanız GitHub Pages üzerinden doğrudan canlı veri akar.</p>
+                  <pre class="code-pre code-pre-short"><code id="worker-template-code"></code></pre>
+                </div>
+              </div>
+            </div>
+          </details>
+        </div>
       </section>
 
       <section id="architecture" class="doc-section">
         <div class="section-header">
-          <h2>Mimari ve Dayanıklılık Mekanizmaları</h2>
-          <p>Sayfa HTML'ine yapılan istekler WAF'a takıldığı için tüm istemciler doğrudan <code>https://www.tefas.gov.tr/api/...</code> JSON uç noktalarına standart tarayıcı başlıklarıyla <code>POST</code> gönderir.</p>
+          <h2>Mimari ve Dayanıklılık</h2>
+          <p>HTML kazıma yerine doğrudan resmi JSON uç noktalarına yapılan kararlı HTTP istekleri ve hata toleransı.</p>
         </div>
         <div id="architecture-grid" class="feature-grid"></div>
       </section>
 
       <section id="quickstart" class="doc-section">
         <div class="section-header">
-          <h2>Kurulum ve İstemci Yapılandırması</h2>
-          <p>Üst menüden veya sekmelerden istediğiniz dili seçtiğinizde sayfadaki tüm örnekler otomatik senkronize olur.</p>
+          <h2>Kurulum ve Hızlı Başlangıç</h2>
+          <p>Üst çubuktan seçtiğiniz dil sayfadaki tüm kod örnekleri ve Playground çıktılarıyla senkronize olur.</p>
         </div>
         <div id="quickstart-container"></div>
       </section>
@@ -82,56 +240,86 @@
       </section>
 
       <section id="method-matrix" class="doc-section">
-        <div class="section-header">
-          <h2>Tüm Dillerde 19 Metot Karşılaştırma Matrisi</h2>
-          <p>Her satır ilgili metot kartına doğrudan bağlantı verir.</p>
+        <div class="section-header section-header-row">
+          <div>
+            <h2>19 Metot Karşılaştırma Matrisi</h2>
+            <p>Satıra tıklayarak ilgili metodun tam referans kartını doğrudan açabilirsiniz.</p>
+          </div>
+          <div class="tabs-bar" id="matrix-filter-tabs" role="tablist">
+            <button class="tab-trigger active" type="button" data-matrix-filter="all">Tümü (19)</button>
+            <button class="tab-trigger" type="button" data-matrix-filter="core">Ana Metotlar (7)</button>
+            <button class="tab-trigger" type="button" data-matrix-filter="extended">Ek Endpointler (12)</button>
+          </div>
         </div>
-        <div id="matrix-container" class="table-wrap"></div>
+        <div id="matrix-container" class="card table-card"></div>
       </section>
 
-      <section id="core-methods" class="doc-section">
-        <div class="section-header">
-          <h2>7 Ana Metod (Tüm Dillerde)</h2>
-          <p>Günlük fon listeleme, tekil detay, 28 günlük otomatik parçalı fiyat geçmişi, 22 sınıflı varlık dağılımı, sıralama, piyasa özeti ve istemci içi arama.</p>
+      <section id="methods" class="doc-section">
+        <div class="section-header section-header-row">
+          <div>
+            <h2>Metot Referansı (7 Ana + 12 Ek)</h2>
+            <p>Sayfa performansını yüksek tutmak için metot detayları açıldığında yüklenir.</p>
+          </div>
+          <div class="method-tools">
+            <input id="method-filter-input" class="input input-sm" type="search" placeholder="Metot veya endpoint filtrele…">
+            <button id="expand-all-btn" class="btn btn-outline btn-sm" type="button">Tümünü Aç</button>
+            <button id="collapse-all-btn" class="btn btn-outline btn-sm" type="button">Daralt</button>
+          </div>
         </div>
-        <div id="core-methods-container" class="endpoint-stack"></div>
-      </section>
 
-      <section id="extended-methods" class="doc-section">
-        <div class="section-header">
-          <h2>12 Araştırılmış Ek ve Referans Endpoint</h2>
-          <p>Tekil özet/kategori sıralaması, ISIN ve işlem profili, 1–60 aylık tek istek seri, büyüklük değişimi, yönetim ücretleri, kurucular, şemsiye fonlar ve duyurular.</p>
-        </div>
-        <div id="extended-methods-container" class="endpoint-stack"></div>
+        <h3 class="sub-heading">7 Ana Metod</h3>
+        <div id="core-methods-container" class="accordion-stack"></div>
+
+        <h3 class="sub-heading">12 Araştırılmış Ek ve Referans Endpoint</h3>
+        <div id="extended-methods-container" class="accordion-stack"></div>
       </section>
 
       <section id="http-reference" class="doc-section">
         <div class="section-header">
-          <h2>Ham HTTP Uç Noktaları ve <code>curl</code> Referansı</h2>
-          <p>SDK kullanmadan doğrudan HTTP çağrısı yapmak veya hata ayıklamak için tüm 13 doğrulanmış <code>POST</code> endpoint şeması.</p>
+          <h2>Ham HTTP Uç Noktaları ve cURL Referansı</h2>
+          <p>SDK kullanmadan doğrudan HTTP çağrısı yapmak için 13 doğrulanmış <code>POST</code> endpoint sözleşmesi.</p>
         </div>
-        <div id="http-reference-container" class="endpoint-stack"></div>
+        <div id="http-reference-container" class="accordion-stack"></div>
       </section>
 
       <section id="models-errors" class="doc-section">
         <div class="section-header">
           <h2>Veri Modelleri, Python <code>sync_*</code> ve Hata Yönetimi</h2>
-          <p>Varlık sınıfları eşlemesi, her dilin hata modeli, Python senkron arayüzü ve test komutları.</p>
+          <p>22 TEFAS varlık kodu eşlemesi, senkron sarmalayıcılar ve dil bazlı istisna hiyerarşisi.</p>
         </div>
         <div id="models-errors-container"></div>
       </section>
 
       <footer class="doc-footer">
-        <div>
-          <strong>TEFAS-API</strong> · MIT Lisansı ·
-          <a href="https://github.com/eneshikmetkayim/Tefas-API" target="_blank" rel="noopener noreferrer">GitHub Reposu</a> ·
-          <a href="https://github.com/eneshikmetkayim/Tefas-API/blob/main/TEFAS_API.md" target="_blank" rel="noopener noreferrer">TEFAS_API.md</a> ·
+        <div class="footer-links">
+          <strong>Tefas-API</strong>
+          <span aria-hidden="true">·</span>
+          <span>MIT Lisansı</span>
+          <span aria-hidden="true">·</span>
+          <a href="https://github.com/eneshikmetkayim/Tefas-API" target="_blank" rel="noopener noreferrer">GitHub</a>
+          <span aria-hidden="true">·</span>
+          <a href="https://github.com/eneshikmetkayim/Tefas-API/blob/main/TEFAS_API.md" target="_blank" rel="noopener noreferrer">TEFAS_API.md</a>
+          <span aria-hidden="true">·</span>
           <a href="https://github.com/eneshikmetkayim/Tefas-API/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer">CONTRIBUTING.md</a>
         </div>
-        <p class="footer-note">Resmi olmayan topluluk istemcisi. Kamuya açık TEFAS API limitlerine (HTTP 429) saygı gösterin.</p>
+        <p class="footer-note">Resmi olmayan topluluk istemcisi. Kamuya açık TEFAS API hız sınırlarına (HTTP 429) saygı gösterin.</p>
       </footer>
     </main>
   </div>
+
+  <dialog id="cmd-dialog" class="cmd-dialog" aria-label="Hızlı arama paleti">
+    <div class="cmd-surface">
+      <div class="cmd-input-row">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input id="cmd-input" type="search" placeholder="Metot, endpoint, parametre veya bölüm ara…" autocomplete="off">
+        <button id="cmd-close-btn" class="btn btn-ghost btn-xs" type="button">ESC</button>
+      </div>
+      <div id="cmd-results" class="cmd-results" role="listbox"></div>
+    </div>
+  </dialog>
 
   <script src="assets/docs-data.js"></script>
   <script src="assets/app.js"></script>
