@@ -118,7 +118,10 @@ where
     D: Deserializer<'de>,
 {
     let val = Option::<Value>::deserialize(deserializer)?;
-    Ok(val.as_ref().and_then(value_to_f64).map(|v| v.trunc() as i64))
+    Ok(val
+        .as_ref()
+        .and_then(value_to_f64)
+        .map(|v| v.trunc() as i64))
 }
 
 fn de_i64<'de, D>(deserializer: D) -> Result<i64, D::Error>
@@ -155,7 +158,10 @@ where
         Some(Value::Bool(b)) => b,
         Some(Value::Number(n)) => n.as_f64().unwrap_or(0.0) != 0.0,
         Some(Value::String(s)) => {
-            matches!(s.trim().to_lowercase().as_str(), "true" | "1" | "evet" | "yes")
+            matches!(
+                s.trim().to_lowercase().as_str(),
+                "true" | "1" | "evet" | "yes"
+            )
         }
         _ => false,
     })
@@ -173,39 +179,114 @@ struct ApiResponse<T> {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Fund {
-    #[serde(default, rename = "fonKodu", alias = "FONKODU", deserialize_with = "de_string")]
+    #[serde(
+        default,
+        rename = "fonKodu",
+        alias = "FONKODU",
+        deserialize_with = "de_string"
+    )]
     pub code: String,
-    #[serde(default, rename = "fonUnvan", alias = "FONUNVAN", deserialize_with = "de_string")]
+    #[serde(
+        default,
+        rename = "fonUnvan",
+        alias = "FONUNVAN",
+        deserialize_with = "de_string"
+    )]
     pub name: String,
-    #[serde(default, rename = "tarih", alias = "TARIH", deserialize_with = "de_string")]
+    #[serde(
+        default,
+        rename = "tarih",
+        alias = "TARIH",
+        deserialize_with = "de_string"
+    )]
     pub date: String,
-    #[serde(default, rename = "fiyat", alias = "FIYAT", deserialize_with = "de_f64")]
+    #[serde(
+        default,
+        rename = "fiyat",
+        alias = "FIYAT",
+        deserialize_with = "de_f64"
+    )]
     pub price: f64,
-    #[serde(default, rename = "tedPaySayisi", alias = "TEDPAYSAYISI", deserialize_with = "de_f64")]
+    #[serde(
+        default,
+        rename = "tedPaySayisi",
+        alias = "TEDPAYSAYISI",
+        deserialize_with = "de_f64"
+    )]
     pub share_count: f64,
-    #[serde(default, rename = "kisiSayisi", alias = "KISISAYISI", deserialize_with = "de_f64")]
+    #[serde(
+        default,
+        rename = "kisiSayisi",
+        alias = "KISISAYISI",
+        deserialize_with = "de_f64"
+    )]
     pub investor_count: f64,
-    #[serde(default, rename = "portfoyBuyukluk", alias = "PORTFOYBUYUKLUK", deserialize_with = "de_f64")]
+    #[serde(
+        default,
+        rename = "portfoyBuyukluk",
+        alias = "PORTFOYBUYUKLUK",
+        deserialize_with = "de_f64"
+    )]
     pub total_value: f64,
-    #[serde(default, rename = "borsaBultenFiyat", alias = "BORSABULTENFIYAT", deserialize_with = "de_opt_f64")]
+    #[serde(
+        default,
+        rename = "borsaBultenFiyat",
+        alias = "BORSABULTENFIYAT",
+        deserialize_with = "de_opt_f64"
+    )]
     pub exchange_bulletin_price: Option<f64>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct FundPrice {
-    #[serde(default, rename = "fonKodu", alias = "FONKODU", deserialize_with = "de_string")]
+    #[serde(
+        default,
+        rename = "fonKodu",
+        alias = "FONKODU",
+        deserialize_with = "de_string"
+    )]
     pub code: String,
-    #[serde(default, rename = "fonUnvan", alias = "FONUNVAN", deserialize_with = "de_string")]
+    #[serde(
+        default,
+        rename = "fonUnvan",
+        alias = "FONUNVAN",
+        deserialize_with = "de_string"
+    )]
     pub name: String,
-    #[serde(default, rename = "tarih", alias = "TARIH", deserialize_with = "de_string")]
+    #[serde(
+        default,
+        rename = "tarih",
+        alias = "TARIH",
+        deserialize_with = "de_string"
+    )]
     pub date: String,
-    #[serde(default, rename = "fiyat", alias = "FIYAT", deserialize_with = "de_f64")]
+    #[serde(
+        default,
+        rename = "fiyat",
+        alias = "FIYAT",
+        deserialize_with = "de_f64"
+    )]
     pub price: f64,
-    #[serde(default, rename = "tedPaySayisi", alias = "TEDPAYSAYISI", deserialize_with = "de_f64")]
+    #[serde(
+        default,
+        rename = "tedPaySayisi",
+        alias = "TEDPAYSAYISI",
+        deserialize_with = "de_f64"
+    )]
     pub share_count: f64,
-    #[serde(default, rename = "kisiSayisi", alias = "KISISAYISI", deserialize_with = "de_f64")]
+    #[serde(
+        default,
+        rename = "kisiSayisi",
+        alias = "KISISAYISI",
+        deserialize_with = "de_f64"
+    )]
     pub investor_count: f64,
-    #[serde(default, rename = "portfoyBuyukluk", alias = "PORTFOYBUYUKLUK", deserialize_with = "de_f64")]
+    #[serde(
+        default,
+        rename = "portfoyBuyukluk",
+        alias = "PORTFOYBUYUKLUK",
+        deserialize_with = "de_f64"
+    )]
     pub total_value: f64,
     #[serde(default, rename = "kategoriDerece", deserialize_with = "de_opt_i64")]
     pub category_rank: Option<i64>,
@@ -215,11 +296,26 @@ pub struct FundPrice {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct FundAllocation {
-    #[serde(default, rename = "fonKodu", alias = "FONKODU", deserialize_with = "de_string")]
+    #[serde(
+        default,
+        rename = "fonKodu",
+        alias = "FONKODU",
+        deserialize_with = "de_string"
+    )]
     pub code: String,
-    #[serde(default, rename = "fonUnvan", alias = "FONUNVAN", deserialize_with = "de_string")]
+    #[serde(
+        default,
+        rename = "fonUnvan",
+        alias = "FONUNVAN",
+        deserialize_with = "de_string"
+    )]
     pub name: String,
-    #[serde(default, rename = "tarih", alias = "TARIH", deserialize_with = "de_string")]
+    #[serde(
+        default,
+        rename = "tarih",
+        alias = "TARIH",
+        deserialize_with = "de_string"
+    )]
     pub date: String,
     #[serde(default, rename = "hs", alias = "HS", deserialize_with = "de_f64")]
     pub stock: f64,
@@ -255,11 +351,26 @@ pub struct FundAllocation {
     pub foreign_bond: f64,
     #[serde(default, rename = "km", alias = "KM", deserialize_with = "de_f64")]
     pub km: f64,
-    #[serde(default, rename = "kmbyf", alias = "KMBYF", deserialize_with = "de_f64")]
+    #[serde(
+        default,
+        rename = "kmbyf",
+        alias = "KMBYF",
+        deserialize_with = "de_f64"
+    )]
     pub kmbyf: f64,
-    #[serde(default, rename = "kmkba", alias = "KMKBA", deserialize_with = "de_f64")]
+    #[serde(
+        default,
+        rename = "kmkba",
+        alias = "KMKBA",
+        deserialize_with = "de_f64"
+    )]
     pub kmkba: f64,
-    #[serde(default, rename = "kmkks", alias = "KMKKS", deserialize_with = "de_f64")]
+    #[serde(
+        default,
+        rename = "kmkks",
+        alias = "KMKKS",
+        deserialize_with = "de_f64"
+    )]
     pub kmkks: f64,
     #[serde(default, rename = "vint", alias = "VINT", deserialize_with = "de_f64")]
     pub viop_collateral: f64,
@@ -385,9 +496,19 @@ pub struct FundSizeInfo {
     pub category_description: String,
     #[serde(default, rename = "tefasDurum", deserialize_with = "de_bool")]
     pub is_tefas_traded: bool,
-    #[serde(default, rename = "kurucuKodu", alias = "kurucuKod", deserialize_with = "de_string")]
+    #[serde(
+        default,
+        rename = "kurucuKodu",
+        alias = "kurucuKod",
+        deserialize_with = "de_string"
+    )]
     pub founder_code: String,
-    #[serde(default, rename = "fonTurkod", alias = "fonTurKod", deserialize_with = "de_string")]
+    #[serde(
+        default,
+        rename = "fonTurkod",
+        alias = "fonTurKod",
+        deserialize_with = "de_string"
+    )]
     pub fund_type_code: String,
     #[serde(default, rename = "ilkPortfoyDegeri", deserialize_with = "de_f64")]
     pub initial_total_value: f64,
@@ -415,9 +536,19 @@ pub struct FundManagementFee {
     pub umbrella_fund_type: String,
     #[serde(default, rename = "tefasDurum", deserialize_with = "de_bool")]
     pub is_tefas_traded: bool,
-    #[serde(default, rename = "fonTurKod", alias = "fonTurkod", deserialize_with = "de_string")]
+    #[serde(
+        default,
+        rename = "fonTurKod",
+        alias = "fonTurkod",
+        deserialize_with = "de_string"
+    )]
     pub fund_type_code: String,
-    #[serde(default, rename = "kurucuKod", alias = "kurucuKodu", deserialize_with = "de_string")]
+    #[serde(
+        default,
+        rename = "kurucuKod",
+        alias = "kurucuKodu",
+        deserialize_with = "de_string"
+    )]
     pub founder_code: String,
     #[serde(default, rename = "uygulananYu1Y", deserialize_with = "de_opt_f64")]
     pub applied_fee: Option<f64>,
@@ -425,7 +556,11 @@ pub struct FundManagementFee {
     pub prospectus_fee: Option<f64>,
     #[serde(default, rename = "yillikGetiri", deserialize_with = "de_f64")]
     pub yearly_return: f64,
-    #[serde(default, rename = "fonTopGiderKesoran", deserialize_with = "de_opt_f64")]
+    #[serde(
+        default,
+        rename = "fonTopGiderKesoran",
+        deserialize_with = "de_opt_f64"
+    )]
     pub max_expense_ratio: Option<f64>,
 }
 
@@ -441,9 +576,19 @@ pub struct FundFounder {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct FundCategory {
-    #[serde(default, rename = "sfonTuru", alias = "fonTuru", deserialize_with = "de_string")]
+    #[serde(
+        default,
+        rename = "sfonTuru",
+        alias = "fonTuru",
+        deserialize_with = "de_string"
+    )]
     pub code: String,
-    #[serde(default, rename = "sfonTurAciklama", alias = "fonTurAciklama", deserialize_with = "de_string")]
+    #[serde(
+        default,
+        rename = "sfonTurAciklama",
+        alias = "fonTurAciklama",
+        deserialize_with = "de_string"
+    )]
     pub name: String,
 }
 
@@ -451,7 +596,12 @@ pub struct FundCategory {
 pub struct FundGroup {
     #[serde(default, rename = "fonGrubu", deserialize_with = "de_string")]
     pub code: String,
-    #[serde(default, rename = "fongrupaciklama", alias = "fonGrupAciklama", deserialize_with = "de_string")]
+    #[serde(
+        default,
+        rename = "fongrupaciklama",
+        alias = "fonGrupAciklama",
+        deserialize_with = "de_string"
+    )]
     pub name: String,
 }
 
@@ -583,7 +733,11 @@ pub fn iter_date_chunks(start: &str, end: &str, max_days: i64) -> Vec<(String, S
     if start_d > end_d {
         return Vec::new();
     }
-    let step = if max_days > 0 { max_days } else { MAX_CHUNK_DAYS };
+    let step = if max_days > 0 {
+        max_days
+    } else {
+        MAX_CHUNK_DAYS
+    };
     let mut out = Vec::new();
     let mut cursor_end = end_d;
     while cursor_end >= start_d {
@@ -640,7 +794,10 @@ pub fn parse_api_response_text<T: DeserializeOwned>(text: &str) -> Result<Vec<T>
     }
 
     if let Some(code) = response.error_code.as_ref().filter(|v| !v.is_null()) {
-        let code_str = code.as_str().map(|s| s.to_string()).unwrap_or_else(|| code.to_string());
+        let code_str = code
+            .as_str()
+            .map(|s| s.to_string())
+            .unwrap_or_else(|| code.to_string());
         if !code_str.is_empty() {
             return Err(TefasError::Api {
                 code: code_str,
@@ -744,7 +901,11 @@ impl TefasClient {
         })
     }
 
-    async fn post<T: DeserializeOwned>(&self, endpoint: &str, body: &Value) -> Result<Vec<T>, TefasError> {
+    async fn post<T: DeserializeOwned>(
+        &self,
+        endpoint: &str,
+        body: &Value,
+    ) -> Result<Vec<T>, TefasError> {
         let text = self.post_raw(endpoint, body).await?;
         parse_api_response_text(&text)
     }
@@ -785,7 +946,11 @@ impl TefasClient {
         })
     }
 
-    async fn resolve_latest_date(&self, fund_type: FundType, endpoint: &str) -> Result<String, TefasError> {
+    async fn resolve_latest_date(
+        &self,
+        fund_type: FundType,
+        endpoint: &str,
+    ) -> Result<String, TefasError> {
         let mut candidate = last_business_day_compact();
         for _ in 0..MAX_FALLBACK_BUSINESS_DAYS {
             let params = Self::build_params(fund_type, None, &candidate, &candidate, None, 1);
@@ -861,7 +1026,9 @@ impl TefasClient {
             return Ok(rows.into_iter().next());
         }
 
-        let resolved = self.resolve_latest_date(fund_type, "fonGnlBlgSiraliGetir").await?;
+        let resolved = self
+            .resolve_latest_date(fund_type, "fonGnlBlgSiraliGetir")
+            .await?;
         if resolved == candidate {
             return Ok(None);
         }
@@ -958,14 +1125,17 @@ impl TefasClient {
         }
 
         let candidate = last_business_day_compact();
-        let params =
-            Self::build_params(fund_type, code_opt, &candidate, &candidate, code_opt, 100_000);
+        let params = Self::build_params(
+            fund_type, code_opt, &candidate, &candidate, code_opt, 100_000,
+        );
         let rows: Vec<FundAllocation> = self.post("dagilimSiraliGetirT", &params).await?;
         if !rows.is_empty() {
             return Ok(rows);
         }
 
-        let resolved = self.resolve_latest_date(fund_type, "dagilimSiraliGetirT").await?;
+        let resolved = self
+            .resolve_latest_date(fund_type, "dagilimSiraliGetirT")
+            .await?;
         if resolved == candidate {
             return Ok(Vec::new());
         }
@@ -1065,7 +1235,11 @@ impl TefasClient {
             .collect())
     }
 
-    pub async fn get_fund_info(&self, code: &str, lang: &str) -> Result<Option<FundInfo>, TefasError> {
+    pub async fn get_fund_info(
+        &self,
+        code: &str,
+        lang: &str,
+    ) -> Result<Option<FundInfo>, TefasError> {
         let normalized = code.trim().to_uppercase();
         if normalized.is_empty() {
             return Ok(None);
@@ -1317,9 +1491,8 @@ mod tests {
             parse_api_response_text(include_str!("../fixtures/empty-result.json")).unwrap();
         assert!(empty.is_empty());
 
-        let waf_err = parse_api_response_text::<Fund>(
-            "<html><title>Erişim Engellendi</title></html>",
-        );
+        let waf_err =
+            parse_api_response_text::<Fund>("<html><title>Erişim Engellendi</title></html>");
         assert!(matches!(waf_err, Err(TefasError::WafBlocked(_))));
 
         let chunks = iter_date_chunks("2026-01-01", "2026-03-01", 28);
