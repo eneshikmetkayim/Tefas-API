@@ -73,9 +73,9 @@ Console.WriteLine($"90g: {history.Count}, 12A: {periodHistory.Count}");
 - `GetFundCodesAsync(FundType fundType = FundType.YAT)`
 - `GetFundInfoAsync(string code, string lang = "TR")`
 - `GetFundProfileAsync(string code, string lang = "TR")`
-- `GetPeriodPriceHistoryAsync(string code, string period = "12", string lang = "TR")`
-- `GetFundSizesAsync(FundType fundType = FundType.YAT, DateTime? startDate = null, DateTime? endDate = null, string? code = null, string lang = "TR")`
-- `GetManagementFeesAsync(FundType fundType = FundType.YAT, DateTime? startDate = null, DateTime? endDate = null, string? code = null, string lang = "TR")`
+- `GetPeriodPriceHistoryAsync(string code, string period = "1", string lang = "TR")`
+- `GetFundSizesAsync(FundType fundType = FundType.YAT, DateTime? startDate = null, DateTime? endDate = null, string code = "", string lang = "TR")`
+- `GetManagementFeesAsync(FundType fundType = FundType.YAT, DateTime? startDate = null, DateTime? endDate = null, string code = "", string lang = "TR")`
 - `GetFundFoundersAsync(FundType fundType = FundType.YAT, string lang = "TR")`
 - `GetFundCategoriesAsync(FundType fundType = FundType.YAT, string lang = "TR")`
 - `GetFundGroupsAsync(FundType fundType = FundType.YAT, string lang = "TR")`

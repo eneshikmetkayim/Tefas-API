@@ -91,7 +91,7 @@ finally:
 ### Araştırılmış Ek Endpointler
 | Metot | TEFAS Uç Noktası | Açıklama |
 |-------|------------------|----------|
-| `get_fund_codes(fund_type)` | `fonKodlariGetir` | Piyasadaki tüm fon kodları |
+| `get_fund_codes(fund_type)` | `fonGnlBlgSiraliGetir` | Piyasadaki tüm fon kodları |
 | `get_fund_info(code, lang)` | `fonBilgiGetir` | Günlük getiri, kategori sırası, pazar payı |
 | `get_fund_profile(code, lang)` | `fonProfilBilgiGetir` | ISIN, saatler, alt/üst sınırlar, valör, KAP linki, risk |
 | `get_period_price_history(code, period, lang)` | `fonFiyatBilgiGetir` | `1`, `3`, `6`, `12`, `36`, `60` aylık fiyat geçmişi |
