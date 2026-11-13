@@ -681,7 +681,8 @@ curl -sS -X POST "https://www.tefas.gov.tr/api/funds/fonBilgiGetir" \
 
 ```text
 Tefas-API/
-├── docs/                       # GitHub Pages dokümantasyon portalı & API Playground
+├── docs/                       # GitHub Pages dokümantasyon portalı & canlı API Playground
+├── worker/                     # Cloudflare Worker CORS proxy (tefasapi)
 ├── scripts/tefas_proxy.py      # Playground için sıfır bağımlılıklı yerel TEFAS CORS relay
 ├── python/                     # Pure stdlib (urllib + asyncio)
 ├── javascript/                 # Native fetch (Node >= 20), ESM + CJS + .d.ts

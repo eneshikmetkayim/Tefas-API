@@ -9,6 +9,7 @@
   const ALLOWED_ENDPOINT_PATHS = new Map(data.httpEndpoints.map((ep) => [ep.path, ep.path]));
   const ENDPOINT_BY_PATH = new Map(data.httpEndpoints.map((ep) => [ep.path, ep]));
   const DEFAULT_LOCAL_PROXY = "http://127.0.0.1:8787";
+  const DEFAULT_WORKER_URL = ((data.playground && data.playground.defaultWorkerUrl) || "").replace(/\/+$/, "");
 
   const isLocalHost =
     window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost";
@@ -872,6 +873,7 @@
     const proxyInput = document.getElementById("pg-proxy-input");
     const proxyHint = document.getElementById("pg-proxy-hint");
     const proxyCheckBtn = document.getElementById("pg-proxy-check-btn");
+    const proxyResetBtn = document.getElementById("pg-proxy-reset-btn");
     const connBadge = document.getElementById("pg-connection-badge");
     const formPanel = document.getElementById("pg-form-panel");
     const jsonPanel = document.getElementById("pg-json-panel");
@@ -914,16 +916,26 @@
       endpointSelect.appendChild(optgroup);
     });
 
-    const savedProxy = localStorage.getItem(STORAGE_PROXY_KEY);
+    const defaultLiveBase = isLocalHost ? window.location.origin : DEFAULT_WORKER_URL;
+    const savedProxyRaw = localStorage.getItem(STORAGE_PROXY_KEY);
+    const savedProxyCheck = savedProxyRaw ? validateSafeProxyBaseUrl(savedProxyRaw) : null;
+    const savedProxy = savedProxyCheck && savedProxyCheck.ok ? savedProxyCheck.origin : "";
+    if (savedProxyRaw && !savedProxy) {
+      localStorage.removeItem(STORAGE_PROXY_KEY);
+    }
     if (savedProxy) {
       proxyInput.value = savedProxy;
-    } else if (isLocalHost) {
-      proxyInput.value = window.location.origin;
+    } else if (defaultLiveBase) {
+      proxyInput.value = defaultLiveBase;
     }
 
     function updateConnectionHint() {
       const mode = modeSelect.value;
       proxyRow.hidden = mode !== "live-proxy";
+      if (proxyResetBtn) {
+        const typedNow = proxyInput.value.trim().replace(/\/+$/, "");
+        proxyResetBtn.hidden = !defaultLiveBase || typedNow === defaultLiveBase;
+      }
       if (mode === "demo") {
         connBadge.className = "badge badge-secondary";
         connBadge.textContent = "Offline Örnek Modu";
@@ -934,17 +946,21 @@
         connBadge.textContent = "Doğrudan Tarayıcı İsteği (CORS'a Bağlı)";
         return;
       }
-      const typed = proxyInput.value.trim();
-      if (!typed && isLocalHost) {
+      const typed = proxyInput.value.trim().replace(/\/+$/, "");
+      if (isLocalHost && (!typed || typed === window.location.origin)) {
         proxyHint.textContent = "Yerel same-origin sunucu algılandı (" + window.location.origin + ").";
         connBadge.className = "badge badge-success";
         connBadge.textContent = "Yerel Proxy Hazır";
+      } else if (DEFAULT_WORKER_URL && typed === DEFAULT_WORKER_URL) {
+        proxyHint.textContent = "Varsayılan Cloudflare Worker (tefasapi) üzerinden canlı TEFAS API istekleri etkin.";
+        connBadge.className = "badge badge-outline";
+        connBadge.textContent = "Worker Hazır";
       } else if (typed) {
-        proxyHint.textContent = "Girilen adres üzerinden /api/... POST istekleri yönlendirilir.";
+        proxyHint.textContent = "Özel adres üzerinden /api/... POST istekleri yönlendirilir.";
         connBadge.className = "badge badge-outline";
         connBadge.textContent = "Özel Proxy Yapılandırıldı";
       } else {
-        proxyHint.textContent = "GitHub Pages üzerinde canlı istek için aşağıdan Worker veya python scripts/tefas_proxy.py URL'si girin.";
+        proxyHint.textContent = "Canlı istek için Worker URL'si girin veya 'Varsayılan Worker' ile varsayılana dönün.";
         connBadge.className = "badge badge-outline";
         connBadge.textContent = "Proxy URL Bekleniyor";
       }
@@ -1098,10 +1114,14 @@
       refreshGeneratedCode();
     }
 
-    async function checkProxyHealth() {
-      const checkUrl = validateSafeProxyBaseUrl(proxyInput.value || (isLocalHost ? window.location.origin : DEFAULT_LOCAL_PROXY));
+    async function checkProxyHealth(silent) {
+      const isSilent = silent === true;
+      const fallbackUrl = isLocalHost ? window.location.origin : (DEFAULT_WORKER_URL || DEFAULT_LOCAL_PROXY);
+      const checkUrl = validateSafeProxyBaseUrl(proxyInput.value || fallbackUrl);
       if (!checkUrl.ok) {
-        showAlert("warning", checkUrl.error, false);
+        if (!isSilent) {
+          showAlert("warning", checkUrl.error, false);
+        }
         return;
       }
       connBadge.className = "badge badge-secondary";
@@ -1112,12 +1132,17 @@
         if (resp.ok && body && body.ok) {
           if (!proxyInput.value.trim()) {
             proxyInput.value = checkUrl.origin;
-            localStorage.setItem(STORAGE_PROXY_KEY, checkUrl.origin);
           }
           modeSelect.value = "live-proxy";
           updateConnectionHint();
           connBadge.className = "badge badge-success";
-          connBadge.textContent = "Proxy Bağlı (Canlı)";
+          if (DEFAULT_WORKER_URL && checkUrl.origin === DEFAULT_WORKER_URL) {
+            connBadge.textContent = "Worker Bağlı (Canlı)";
+          } else if (isLocalHost && checkUrl.origin === window.location.origin) {
+            connBadge.textContent = "Yerel Proxy Bağlı";
+          } else {
+            connBadge.textContent = "Proxy Bağlı (Canlı)";
+          }
           hideAlert();
         } else {
           connBadge.className = "badge badge-danger";
@@ -1125,12 +1150,17 @@
         }
       } catch {
         connBadge.className = "badge badge-warning";
-        connBadge.textContent = "Proxy Erişilemiyor";
-        showAlert(
-          "warning",
-          "Yerel proxy çalışmıyor. Terminalde 'python scripts/tefas_proxy.py' çalıştırabilir veya Cloudflare Worker URL'si girebilirsiniz.",
-          true
-        );
+        connBadge.textContent =
+          DEFAULT_WORKER_URL && checkUrl.origin === DEFAULT_WORKER_URL
+            ? "Worker Erişilemiyor"
+            : "Proxy Erişilemiyor";
+        if (!isSilent) {
+          showAlert(
+            "warning",
+            "Proxy adresine bağlanılamadı. Worker URL'sinin aktif olduğundan veya yerel 'python scripts/tefas_proxy.py' sunucusunun çalıştığından emin olun.",
+            true
+          );
+        }
       }
     }
 
@@ -1171,7 +1201,7 @@
       if (mode === "live-direct") {
         targetUrl = "https://www.tefas.gov.tr" + safePath;
       } else {
-        const rawProxy = proxyInput.value.trim() || (isLocalHost ? window.location.origin : "");
+        const rawProxy = proxyInput.value.trim() || defaultLiveBase;
         if (!rawProxy) {
           showAlert(
             "warning",
@@ -1186,7 +1216,11 @@
           showAlert("danger", check.error, false);
           return;
         }
-        localStorage.setItem(STORAGE_PROXY_KEY, check.origin);
+        if (check.origin !== defaultLiveBase) {
+          localStorage.setItem(STORAGE_PROXY_KEY, check.origin);
+        } else {
+          localStorage.removeItem(STORAGE_PROXY_KEY);
+        }
         targetUrl = check.origin + safePath;
       }
 
@@ -1296,14 +1330,23 @@
 
     modeSelect.addEventListener("change", updateConnectionHint);
     proxyInput.addEventListener("input", () => {
-      const trimmed = proxyInput.value.trim();
-      if (trimmed) {
+      const trimmed = proxyInput.value.trim().replace(/\/+$/, "");
+      if (trimmed && trimmed !== defaultLiveBase) {
         localStorage.setItem(STORAGE_PROXY_KEY, trimmed);
       } else {
         localStorage.removeItem(STORAGE_PROXY_KEY);
       }
       updateConnectionHint();
     });
+    if (proxyResetBtn) {
+      proxyResetBtn.addEventListener("click", () => {
+        proxyInput.value = defaultLiveBase;
+        localStorage.removeItem(STORAGE_PROXY_KEY);
+        modeSelect.value = "live-proxy";
+        updateConnectionHint();
+        checkProxyHealth(false);
+      });
+    }
     proxyCheckBtn.addEventListener("click", checkProxyHealth);
     sendBtn.addEventListener("click", executeRequest);
 
@@ -1378,12 +1421,12 @@
       latencyMs: 0
     });
 
-    if (!isLocalHost && !savedProxy) {
+    if (!defaultLiveBase && !savedProxy) {
       modeSelect.value = "demo";
     }
     updateConnectionHint();
-    if (isLocalHost) {
-      checkProxyHealth();
+    if (modeSelect.value === "live-proxy" && proxyInput.value.trim()) {
+      checkProxyHealth(true);
     }
 
     playgroundController = {

@@ -99,7 +99,7 @@
         <div class="section-header section-header-row">
           <div>
             <h2>Etkileşimli API Playground</h2>
-            <p>13 doğrulanmış TEFAS uç noktası için parametreleri düzenleyin, canlı proxy veya örnek şema üzerinden yanıtı inceleyin.</p>
+            <p>13 doğrulanmış TEFAS uç noktası için parametreleri düzenleyin; yerleşik Cloudflare Worker üzerinden canlı veri veya örnek şema yanıtı alın.</p>
           </div>
           <span id="pg-connection-badge" class="badge badge-outline">Kontrol ediliyor…</span>
         </div>
@@ -110,7 +110,7 @@
             <div class="pg-mode-wrap">
               <label class="sr-only" for="pg-mode-select">Çalıştırma Modu</label>
               <select id="pg-mode-select" class="input select-sm">
-                <option value="live-proxy">Canlı İstek (Proxy / Yerel)</option>
+                <option value="live-proxy">Canlı İstek (Cloudflare Worker / Proxy)</option>
                 <option value="live-direct">Canlı İstek (Doğrudan tefas.gov.tr)</option>
                 <option value="demo">Doğrulanmış Örnek Yanıt (Offline)</option>
               </select>
@@ -129,9 +129,12 @@
               <div class="field-group" id="pg-proxy-row">
                 <div class="field-label-row">
                   <label class="field-label" for="pg-proxy-input">Proxy / Cloudflare Worker URL</label>
-                  <button id="pg-proxy-check-btn" class="btn btn-ghost btn-xs" type="button">Bağlantıyı Test Et</button>
+                  <div class="field-actions">
+                    <button id="pg-proxy-reset-btn" class="btn btn-ghost btn-xs" type="button" hidden>Varsayılan Worker</button>
+                    <button id="pg-proxy-check-btn" class="btn btn-ghost btn-xs" type="button">Bağlantıyı Test Et</button>
+                  </div>
                 </div>
-                <input id="pg-proxy-input" class="input mono-input" type="url" placeholder="http://127.0.0.1:8787 veya https://tefas-proxy.kullanici.workers.dev">
+                <input id="pg-proxy-input" class="input mono-input" type="url" placeholder="https://tefasapi.eneshikmetkayim.workers.dev">
                 <p id="pg-proxy-hint" class="field-hint"></p>
               </div>
 
@@ -183,14 +186,14 @@
 
           <details class="accordion-sub" id="pg-cors-guide">
             <summary class="accordion-sub-summary">
-              <span>Tarayıcı CORS Kısıtlaması ve 1 Dakikada Canlı Proxy Kurulumu (Python / Cloudflare Worker)</span>
-              <span class="badge badge-outline">İsteğe Bağlı</span>
+              <span>Tarayıcı CORS Mimarisi &amp; Cloudflare Worker / Yerel Relay</span>
+              <span class="badge badge-success">Canlı Worker Aktif</span>
             </summary>
             <div class="accordion-sub-body">
               <p class="muted-text">
                 TEFAS sunucusu (<code>www.tefas.gov.tr</code>) <code>Access-Control-Allow-Origin</code> başlığı göndermediği için
-                GitHub Pages gibi farklı bir alandan doğrudan tarayıcı <code>fetch()</code> çağrısı CORS engeline takılır.
-                Gerçek canlı veri denemek için aşağıdaki iki sıfır-maliyetli yoldan birini kullanabilirsiniz:
+                GitHub Pages üzerinden doğrudan tarayıcı <code>fetch()</code> çağrısı CORS engeline takılır.
+                Bu nedenle Playground varsayılan olarak canlı Cloudflare Worker (<code>https://tefasapi.eneshikmetkayim.workers.dev</code>) uç noktasına bağlıdır; dilerseniz aşağıdaki iki seçenekten biriyle kendi ortamınızı da kullanabilirsiniz:
               </p>
               <div class="proxy-guide-grid">
                 <div class="card card-muted">
@@ -203,10 +206,10 @@
                 </div>
                 <div class="card card-muted">
                   <div class="card-head-compact">
-                    <strong>2. Ücretsiz Cloudflare Worker (Her Yerden Canlı)</strong>
+                    <strong>2. Ücretsiz Cloudflare Worker (Kendi Hesabınız İçin Şablon)</strong>
                     <button id="copy-worker-btn" class="btn btn-outline btn-xs" type="button">Kodu Kopyala</button>
                   </div>
-                  <p class="muted-text-sm">Tek dosya Worker oluşturup URL'yi yukarıdaki Proxy alanına yapıştırırsanız GitHub Pages üzerinden doğrudan canlı veri akar.</p>
+                  <p class="muted-text-sm">Varsayılan Worker zaten bağlıdır. Kendi Cloudflare Worker örneğinizi deploy edip URL'sini yukarıdaki Proxy alanına girebilirsiniz (tam kaynak: <code>worker/src/index.ts</code>).</p>
                   <pre class="code-pre code-pre-short"><code id="worker-template-code"></code></pre>
                 </div>
               </div>
